@@ -38,8 +38,13 @@ Try to make a racing rig, with real analog instruments, and a Raspberry Pi 4 wit
 ## The "MowTec"
 This is the device that mocks a MoTec display. These usually have a small LCD-screen with some LEDs above lighting up when engine RPM is close to redline.
 
-Inspired from the Ken Block's Hoonitruck, where the LEDs look like a christmas tree when he redlines his vehicle.
+Inspired from the Ken Block's Hoonitruck, where the LEDs look like a christmas tree when he redlines his vehicle:
 
 ![The MowTec](img/mowtec-rpm.gif)
 
 Test-implementation done with Pygame. Unsure if the LEDs should be on/off, or if a better option would be to pulse width modulate them.
+
+Inspiration comes from this [video](https://youtu.be/tik4QgvMwd4?t=114), that shows this:
+
+![Hoonitruck inside](img/replicate-ecu.jpg)
+
