@@ -3,14 +3,15 @@
 Try to make a racing rig, with real analog instruments, and a Raspberry Pi 4 with an LCD to show telemetry data.
 
 ## Goals
-- Build with wood
+- Build frame using wood
 - [Fanatec](https://fanatec.com/)
 	- [ClubSport Wheel Base](https://fanatec.com/eu-en/racing-wheels-wheel-bases/wheel-bases/clubsport-wheel-base-v2.5)
 	- [Pedals](https://fanatec.com/eu-en/pedals/clubsport-pedals-v3)
 - Custom handbrake in wood (analog)
-	- To replicate the placement in the Hoonicorn and custom springs inside it
+	- To replicate the placement in the Hoonicorn and use custom springs inside it to make it heavy
 - Custom shifter, digital (up and down)
 	- To replicate the placement in the Hoonicorn 
+- [Real Sparco seat!](https://www.sparco-official.com/en/racing/seats-and-belts/tubular-seats/sed-sprint-2019-az.html)
 - Windows-based PC, mainly using:
 	- Project Cars 2
 	- iRacing
