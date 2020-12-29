@@ -37,8 +37,8 @@ with Draw() as p:
 
 			# Calculate brightness of this LED: i
 			brightness = int(rpm * len(LEDS)) == i  # Single LED
-			brightness = 1/(1+abs(meter_rpm * (len(LEDS)-1) - i)**6)**.2  # Nice, with fall-off on both side
-			brightness = 1/(1+abs(meter_rpm * (len(LEDS)-1) - i)**6)**.2 > .4  # Nice, with fall-off on both side
+			brightness = 1/(1+abs(meter_rpm * (len(LEDS)-1) - i)**6)**.2  # Nice, with fall-off on both side (requires PWM or analog output from IC)
+			#brightness = 1/(1+abs(meter_rpm * (len(LEDS)-1) - i)**6)**.2 > .4  # Same, but no fall-off on sides (on/off LEDs)
 
 			color = tuple(x * brightness for x in LEDS[i])
 
