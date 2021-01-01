@@ -1,5 +1,11 @@
 # TODO MowTec
-- [ ] Find and purchase header to put on GPIO-port
+- [ ] Simple testing with Rust:
+	- [ ] Configurate GPIO 17 (pin 11) as output
+	- [ ] Find voltage out (configurable?)
+	- [ ] Find highest frequency
+- Wait for Micro HDMI-cable, then:
+	- If we can use the LCD display with only power and HDMI:
+		- [ ] Create interface to the GPIO-sockets by soldering board directly on to the Raspberry Pi 4B
 - [ ] Select output function on GPIO: (GPIO No., RPi 4B No.)
 	- [ ] 17, 11, green 0
 	- [ ] 27, 13, green 1
