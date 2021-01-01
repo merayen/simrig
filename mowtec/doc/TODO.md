@@ -1,0 +1,17 @@
+# TODO MowTec
+- [ ] Find and purchase header to put on GPIO-port
+- [ ] Select output function on GPIO: (GPIO No., RPi 4B No.)
+	- [ ] 17, 11, green 0
+	- [ ] 27, 13, green 1
+	- [ ] 22, 15, green 2
+	- [ ] 23, 16, green 3
+	- [ ] 24, 18, yellow 0
+	- [ ] 25, 22, yellow 1
+	- [ ] 5,  29, yellow 2
+	- [ ] 6,  31, red 0
+	- [ ] 16, 36, red 1
+	- [ ] 26, 37, red 2
+- [ ] Find correct resistor values and transistors for LEDs
+	- [ ] Find small bipolar transistors
+- [ ] Make Project Cars 2 shared memory to UDP data-sender
+	- [ ] Need to be developed for Windows. Rust? C++ and CLion?
