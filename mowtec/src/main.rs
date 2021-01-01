@@ -1,3 +1,7 @@
+// Registers, 32-bit address
+const GPFSEL1: isize = 0x01;
+const GPSET0: isize = 0x1C;
+
 fn get_address(gpio_pin_no: u8) -> i32 {
 	if gpio_pin_no > 27 {
 		panic!("Pin number {} does not exist", gpio_pin_no);
@@ -41,11 +45,24 @@ fn main() {
 		panic!("Could not mmap GPIO");
 	}
 
+	// Direct mapping of GPIO registers that we can read and write to
+	let mut gpio = gpio_map as *mut u32;
+
 	unsafe {
-		let mut stat: libc::stat = std::mem::zeroed();
-		libc::fstat(mem_fd, &mut stat);
-		//println!("{}", stat.st_size);
+		//println!("Before: {}", *gpio.offset(GPFSEL1));
+		gpio.offset(GPFSEL1).write(*gpio.offset(GPFSEL1) & (0xFFFFFFFF ^ ((1<<21) + (1<<22) + (1<<23))) | (1<<21));
+		//println!("After: {}", *gpio.offset(GPFSEL1));
+		gpio.offset(GPSET0).write(*gpio.offset(GPSET0) | 1<<17);
+		println!("{}", *gpio.offset(GPSET0));
 	}
+
+	// Configure 17 as output
+
+	//unsafe {
+	//	let mut stat: libc::stat = std::mem::zeroed();
+	//	libc::fstat(mem_fd, &mut stat);
+	//	println!("{}", stat.st_size);
+	//}
 
 	//let mut noe = gpio_map as *mut u8;
 
