@@ -1,6 +1,5 @@
 use std::io::prelude::*;
 
-
 // Registers, 32-bit address offsets
 const GPFSEL: isize = 0x00 / 4;
 const GPFSEL0: isize = 0x00 / 4;
@@ -11,49 +10,140 @@ const GPCLR0: isize = 0x28 / 4;
 // vec index is the LED No., and the content is the actual GPIO No.
 const LED_GPIO: [u8; 10] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
 
-fn get_address(gpio_pin_no: u8) -> i32 {
-	if gpio_pin_no > 27 {
-		panic!("Pin number {} does not exist", gpio_pin_no);
-	}
+// Value for each LED. 0 = no light. 127 = 50% light, 255 = yes
+static led_values: [u8; 10] = [0; 10];
 
-	return 0;
+struct LEDController {
+	position: u8,
+	led_power: [u8; LED_GPIO.len()],
+	gpio: *mut u32,
+	gpio_map: *mut libc::c_void,
 }
 
-fn check_platform() {
-	let mut file = std::fs::File::open("/sys/firmware/devicetree/base/model").unwrap();
-	let mut version = String::new();
-	file.read_to_string(&mut version).unwrap();
-	assert!(version.starts_with("Raspberry Pi 4 Model B Rev"));
-}
-
-// Sets the FSEL... values for all the LEDs
-unsafe fn prep_leds(gpio: *mut u32) {
-	let mut mask = [0u32; 3];
-	let mut val = [0u32; 3];
-
-	for (led, gpio_pin) in LED_GPIO.iter().enumerate() {
-		assert!(*gpio_pin < 30); // RPi doesn't support any more anyway for the GPIO port
-
-		let registerIndex: usize = (gpio_pin / 10).into();
-
-		// Calculate the mask
-		mask[registerIndex] |= 0x7u32 << ((gpio_pin % 10) * 3);
-
-		// Then do the FSEL value
-		val[registerIndex] |= 0x1u32 << ((gpio_pin % 10) * 3);
+impl LEDController {
+	fn check_platform() {
+		let mut file = std::fs::File::open("/sys/firmware/devicetree/base/model").unwrap();
+		let mut version = String::new();
+		file.read_to_string(&mut version).unwrap();
+		assert!(version.starts_with("Raspberry Pi 4 Model B Rev"));
 	}
 
-	for registerIndex in 0..mask.len() { // registerIndex represents 32 bit offset in register
-		let mut fselValue = *gpio.offset(registerIndex as isize);
-		println!("{}, {}, {}", registerIndex, !mask[registerIndex], val[registerIndex]);
-		let before = fselValue;
-		fselValue &= !mask[registerIndex];
-		fselValue |= val[registerIndex];
-		println!("mask:        {:032b}", !mask[registerIndex]);
-		println!("val:         {:032b}", val[registerIndex]);
-		println!("fsel before: {:032b}", before);
-		println!("fsel after:  {:032b}", fselValue);
-		gpio.offset(registerIndex as isize).write(fselValue);
+	unsafe fn new() -> LEDController {
+		LEDController::check_platform();
+
+		// https://doc.rust-lang.org/std/ffi/struct.CString.html#method.as_ptr
+		let path = std::ffi::CString::new("/dev/gpiomem").unwrap();
+
+		let &gpio_map;
+		let &mem_fd;
+
+		unsafe {
+			mem_fd = libc::open(path.as_ptr(), libc::O_RDWR | libc::O_SYNC | libc::O_CLOEXEC);
+		}
+
+		if mem_fd < 0 {
+			panic!("Could not open /dev/gpiomem");
+		}
+
+		unsafe {
+			gpio_map = libc::mmap(
+				std::ptr::null_mut(),
+				4 * 1024,
+				libc::PROT_READ | libc::PROT_WRITE,
+				libc::MAP_SHARED,
+				mem_fd,
+				0
+			);
+
+			libc::close(mem_fd);
+		}
+
+		if gpio_map == libc::MAP_FAILED {
+			panic!("Could not mmap GPIO");
+		}
+
+		// Direct mapping of GPIO registers that we can read and write to
+		let mut gpio = gpio_map as *mut u32;
+
+		unsafe {
+			// Make additional checks the IC is the BCM2711 (?)
+			if *gpio.offset(60) == 0x6770696f {
+				panic!("This is not a BCM2711! This code is hardcoded for that exact chip {}", *gpio.offset(60));
+			}
+
+			LEDController::prep_leds(gpio);
+		}
+
+		LEDController {
+			position: 0,
+			led_power: [0u8; 10],
+			gpio: gpio,
+			gpio_map: gpio_map,
+		}
+	}
+
+
+	unsafe fn update(&mut self) {
+		self.position += 1;
+		let mut gpsel = *self.gpio.offset(GPSET0);
+		let mut gpclr = *self.gpio.offset(GPCLR0);
+
+		// Create the mask
+		//let mut mask: u32 = LED_GPIO.map( |x| 1<<*x).sum();
+
+		for (i,x) in self.led_power.iter().enumerate() {
+			assert!(*x < 30);
+			if *x >= self.position {
+				gpsel |= 1<<LED_GPIO[i];
+			} else {
+				gpclr |= 1<<LED_GPIO[i];
+			}
+		}
+	}
+
+	fn set(&mut self, led: usize, power: u8) {
+		self.led_power[led] = power;
+	}
+
+	// Sets the FSEL... values for all the LEDs
+	unsafe fn prep_leds(gpio: *mut u32) {
+		let mut mask = [0u32; 3];
+		let mut val = [0u32; 3];
+
+		for (led, gpio_pin) in LED_GPIO.iter().enumerate() {
+			assert!(*gpio_pin < 30); // RPi doesn't support any more anyway for the GPIO port
+
+			let registerIndex: usize = (gpio_pin / 10).into();
+
+			// Calculate the mask
+			mask[registerIndex] |= 0x7u32 << ((gpio_pin % 10) * 3);
+
+			// Then do the FSEL value
+			val[registerIndex] |= 0x1u32 << ((gpio_pin % 10) * 3);
+		}
+
+		for registerIndex in 0..mask.len() { // registerIndex represents 32 bit offset in register
+			let mut fselValue = *gpio.offset(registerIndex as isize);
+			println!("{}, {}, {}", registerIndex, !mask[registerIndex], val[registerIndex]);
+			let before = fselValue;
+			fselValue &= !mask[registerIndex];
+			fselValue |= val[registerIndex];
+			println!("mask:        {:032b}", !mask[registerIndex]);
+			println!("val:         {:032b}", val[registerIndex]);
+			println!("fsel before: {:032b}", before);
+			println!("fsel after:  {:032b}", fselValue);
+			gpio.offset(registerIndex as isize).write(fselValue);
+		}
+	}
+}
+
+impl Drop for LEDController {
+	fn drop(&mut self) {
+		unsafe {
+			if libc::munmap(self.gpio_map, 4 * 1024) != 0 {
+				panic!("Could not munmap");
+			}
+		}
 	}
 }
 
@@ -78,79 +168,5 @@ unsafe fn set_led(gpio: *mut u32, led: u8, value: bool) {
 }
 
 fn main() {
-	check_platform();
-	// https://doc.rust-lang.org/std/ffi/struct.CString.html#method.as_ptr
-	let path = std::ffi::CString::new("/dev/gpiomem").unwrap();
 
-	let &gpio_map;
-
-	let &mem_fd;
-
-	unsafe {
-		mem_fd = libc::open(path.as_ptr(), libc::O_RDWR | libc::O_SYNC | libc::O_CLOEXEC);
-	}
-
-	if mem_fd < 0 {
-		panic!("Could not open /dev/gpiomem");
-	}
-
-	unsafe {
-		gpio_map = libc::mmap(
-			std::ptr::null_mut(),
-			4 * 1024,
-			libc::PROT_READ | libc::PROT_WRITE,
-			libc::MAP_SHARED,
-			mem_fd,
-			0
-			//0x200000
-			//(0xFE000000i64 + 0x200000i64) as i32
-		);
-
-		libc::close(mem_fd);
-	}
-
-	if gpio_map == libc::MAP_FAILED {
-		panic!("Could not mmap GPIO");
-	}
-
-	// Direct mapping of GPIO registers that we can read and write to
-	let mut gpio = gpio_map as *mut u32;
-
-	unsafe {
-		// Make additional checks the IC is the BCM2711 (?)
-		if *gpio.offset(60) == 0x6770696f {
-			panic!("This is not a BCM2711! This code is hardcoded for that exact chip {}", *gpio.offset(60));
-		}
-
-		prep_leds(gpio);
-
-		//loop {
-		//	set_led(gpio, 0, true);
-		//	libc::usleep(0);
-		//	set_led(gpio, 0, false);
-		//	libc::usleep(0);
-		//}
-	}
-
-	// Configure 17 as output
-
-	//unsafe {
-	//	let mut stat: libc::stat = std::mem::zeroed();
-	//	libc::fstat(mem_fd, &mut stat);
-	//	println!("{}", stat.st_size);
-	//}
-
-	//let mut noe = gpio_map as *mut u8;
-
-	//unsafe {
-	//	for i in 0..1000 {
-	//		println!("{}, {}", i, *noe.offset(i) as char);
-	//	}
-	//}
-
-	unsafe {
-		if libc::munmap(gpio_map, 4 * 1024) != 0 {
-			panic!("Could not munmap");
-		}
-	}
 }
