@@ -2,9 +2,14 @@ use std::io::prelude::*;
 
 
 // Registers, 32-bit address offsets
+const GPFSEL: isize = 0x00 / 4;
+const GPFSEL0: isize = 0x00 / 4;
 const GPFSEL1: isize = 0x04 / 4;
 const GPSET0: isize = 0x1C / 4;
 const GPCLR0: isize = 0x28 / 4;
+
+// vec index is the LED No., and the content is the actual GPIO No.
+const LED_GPIO: [u8; 10] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
 
 fn get_address(gpio_pin_no: u8) -> i32 {
 	if gpio_pin_no > 27 {
@@ -21,32 +26,54 @@ fn check_platform() {
 	assert!(version.starts_with("Raspberry Pi 4 Model B Rev"));
 }
 
-unsafe fn set_pin(gpio: *mut u32, pin: u8, value: bool) {
-	//println!("Before: {}", *gpio.offset(GPFSEL1));
-	//gpio.offset(GPFSEL1).write(*gpio.offset(GPFSEL1) & (0xFFFFFFFF ^ ((1<<21) + (1<<22) + (1<<23))) | (1<<21));
-	//println!("After: {}", *gpio.offset(GPFSEL1));
-	//gpio.offset(GPSET0).write(*gpio.offset(GPSET0) | 1<<17);
+// Sets the FSEL... values for all the LEDs
+unsafe fn prep_leds(gpio: *mut u32) {
+	let mut mask = [0u32; 3];
+	let mut val = [0u32; 3];
+
+	for (led, gpio_pin) in LED_GPIO.iter().enumerate() {
+		assert!(*gpio_pin < 30); // RPi doesn't support any more anyway for the GPIO port
+
+		let registerIndex: usize = (gpio_pin / 10).into();
+
+		// Calculate the mask
+		mask[registerIndex] |= 0x7u32 << ((gpio_pin % 10) * 3);
+
+		// Then do the FSEL value
+		val[registerIndex] |= 0x1u32 << ((gpio_pin % 10) * 3);
+	}
+
+	for registerIndex in 0..mask.len() { // registerIndex represents 32 bit offset in register
+		let mut fselValue = *gpio.offset(registerIndex as isize);
+		println!("{}, {}, {}", registerIndex, !mask[registerIndex], val[registerIndex]);
+		let before = fselValue;
+		fselValue &= !mask[registerIndex];
+		fselValue |= val[registerIndex];
+		println!("mask:        {:032b}", !mask[registerIndex]);
+		println!("val:         {:032b}", val[registerIndex]);
+		println!("fsel before: {:032b}", before);
+		println!("fsel after:  {:032b}", fselValue);
+		gpio.offset(registerIndex as isize).write(fselValue);
+	}
+}
+
+/// Set a LED on or off.
+unsafe fn set_led(gpio: *mut u32, led: u8, value: bool) {
+	assert!(led < LED_GPIO.len() as u8);
 	let mut mask: u32 = !(0x7u32 << 21);
 	let mut fsel = *gpio.offset(GPFSEL1);
 	fsel &= mask; // Clear the 3 bits for the port
 	fsel |= 0x1 << 21; // Set out flag that this should be an output port
-	println!("FSEL before: {}", *gpio.offset(1));
 	gpio.offset(GPFSEL1).write(fsel);
-	println!("FSEL after: {}", *gpio.offset(1));
 
 	if value {
 		let mut val = *gpio.offset(GPSET0);
-		println!("VAL before: {}", val);
-		val |= (1 << 17);
+		val |= 1 << 17;
 		gpio.offset(GPSET0).write(val);
-		println!("VAL before: {}", val);
-		//gpio.offset(GPSET0).write(
 	} else {
 		let mut clr = *gpio.offset(GPCLR0);
-		println!("CLR before: {}", clr);
-		clr |= (1 << 17);
+		clr |= 1 << 17;
 		gpio.offset(GPCLR0).write(clr);
-		println!("CLR after: {}", clr);
 	}
 }
 
@@ -95,7 +122,14 @@ fn main() {
 			panic!("This is not a BCM2711! This code is hardcoded for that exact chip {}", *gpio.offset(60));
 		}
 
-		set_pin(gpio, 17, true);
+		prep_leds(gpio);
+
+		//loop {
+		//	set_led(gpio, 0, true);
+		//	libc::usleep(0);
+		//	set_led(gpio, 0, false);
+		//	libc::usleep(0);
+		//}
 	}
 
 	// Configure 17 as output
