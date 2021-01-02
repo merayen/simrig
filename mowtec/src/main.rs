@@ -104,8 +104,10 @@ impl LEDController {
 			}
 		}
 
-		self.gpio.offset(GPSET0).write(gpsel);
-		self.gpio.offset(GPCLR0).write(gpclr);
+		unsafe {
+			self.gpio.offset(GPSET0).write(gpsel);
+			self.gpio.offset(GPCLR0).write(gpclr);
+		}
 	}
 
 	fn set(&mut self, led: usize, power: u8) {
@@ -158,12 +160,27 @@ impl Drop for LEDController {
 	}
 }
 
+fn get_time() -> u128 {
+	return std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+}
+
 fn main() {
 	let mut ctrl = LEDController::new();
+	let mut a = 0;
+	let mut next = get_time();
 	loop {
-		ctrl.set(0, 50);
+		let time = get_time();
+		if next < time {
+			next = time + 10;
+			a = (a + 1) % 150;
+		}
+
+		for i in 0..LED_GPIO.len() {
+			ctrl.set(i, a + i as u8 * 10);
+		}
+
 		unsafe {
-			libc::usleep(1000);
+			libc::usleep(10);
 		}
 		ctrl.update();
 	}
