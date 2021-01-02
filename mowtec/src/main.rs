@@ -10,12 +10,12 @@ const GPCLR0: isize = 0x28 / 4;
 // vec index is the LED No., and the content is the actual GPIO No.
 const LED_GPIO: [u8; 10] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
 
-// Value for each LED. 0 = no light. 127 = 50% light, 255 = yes
-static led_values: [u8; 10] = [0; 10];
-
 struct LEDController {
 	position: u8,
+
+	// Value for each LED. 0 = no light. 127 = 50% light, 255 = yes
 	led_power: [u8; LED_GPIO.len()],
+
 	gpio: *mut u32,
 	gpio_map: *mut libc::c_void,
 }
@@ -28,7 +28,7 @@ impl LEDController {
 		assert!(version.starts_with("Raspberry Pi 4 Model B Rev"));
 	}
 
-	unsafe fn new() -> LEDController {
+	fn new() -> LEDController {
 		LEDController::check_platform();
 
 		// https://doc.rust-lang.org/std/ffi/struct.CString.html#method.as_ptr
@@ -83,26 +83,37 @@ impl LEDController {
 	}
 
 
-	unsafe fn update(&mut self) {
+	fn update(&mut self) {
 		self.position += 1;
-		let mut gpsel = *self.gpio.offset(GPSET0);
-		let mut gpclr = *self.gpio.offset(GPCLR0);
+		self.position %= 100;
 
-		// Create the mask
-		//let mut mask: u32 = LED_GPIO.map( |x| 1<<*x).sum();
+		let mut gpsel;
+		let mut gpclr;
+
+		unsafe {
+			gpsel = *self.gpio.offset(GPSET0);
+			gpclr = *self.gpio.offset(GPCLR0);
+		}
 
 		for (i,x) in self.led_power.iter().enumerate() {
-			assert!(*x < 30);
+			let v = 1<<LED_GPIO[i];
 			if *x >= self.position {
-				gpsel |= 1<<LED_GPIO[i];
+				gpsel |= v;
 			} else {
-				gpclr |= 1<<LED_GPIO[i];
+				gpclr |= v;
 			}
 		}
+
+		self.gpio.offset(GPSET0).write(gpsel);
+		self.gpio.offset(GPCLR0).write(gpclr);
 	}
 
 	fn set(&mut self, led: usize, power: u8) {
-		self.led_power[led] = power;
+		if power > 100 {
+			self.led_power[led] = 100;
+		} else {
+			self.led_power[led] = power;
+		}
 	}
 
 	// Sets the FSEL... values for all the LEDs
@@ -147,26 +158,13 @@ impl Drop for LEDController {
 	}
 }
 
-/// Set a LED on or off.
-unsafe fn set_led(gpio: *mut u32, led: u8, value: bool) {
-	assert!(led < LED_GPIO.len() as u8);
-	let mut mask: u32 = !(0x7u32 << 21);
-	let mut fsel = *gpio.offset(GPFSEL1);
-	fsel &= mask; // Clear the 3 bits for the port
-	fsel |= 0x1 << 21; // Set out flag that this should be an output port
-	gpio.offset(GPFSEL1).write(fsel);
-
-	if value {
-		let mut val = *gpio.offset(GPSET0);
-		val |= 1 << 17;
-		gpio.offset(GPSET0).write(val);
-	} else {
-		let mut clr = *gpio.offset(GPCLR0);
-		clr |= 1 << 17;
-		gpio.offset(GPCLR0).write(clr);
-	}
-}
-
 fn main() {
-
+	let mut ctrl = LEDController::new();
+	loop {
+		ctrl.set(0, 50);
+		unsafe {
+			libc::usleep(1000);
+		}
+		ctrl.update();
+	}
 }
