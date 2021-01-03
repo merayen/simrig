@@ -14,7 +14,11 @@ impl UI {
 	}
 
 	pub fn draw(&self, page: &mut impl Page) {
-		page.draw().draw();
+		let to_draw = page.draw();
+		if to_draw.is_none() {
+			return; // Nothing new has been drawn, we skip
+		}
+		to_draw.unwrap().draw();
 	}
 }
 
