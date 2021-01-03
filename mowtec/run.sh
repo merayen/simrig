@@ -1,2 +1,1 @@
-sync
 cargo run #--release

@@ -4,9 +4,6 @@ pub const LED_COUNT: usize = 10;
 pub const LED_MAX_POWER: u8 = 10;
 
 // Registers, 32-bit address offsets
-const GPFSEL: isize = 0x00 / 4;
-const GPFSEL0: isize = 0x00 / 4;
-const GPFSEL1: isize = 0x04 / 4;
 const GPSET0: isize = 0x1C / 4;
 const GPCLR0: isize = 0x28 / 4;
 
@@ -66,7 +63,7 @@ impl LEDController {
 		}
 
 		// Direct mapping of GPIO registers that we can read and write to
-		let mut gpio = gpio_map as *mut u32;
+		let gpio = gpio_map as *mut u32;
 
 		unsafe {
 			// Make additional checks the IC is the BCM2711 (?)
@@ -129,26 +126,26 @@ impl LEDController {
 		for (led, gpio_pin) in LED_GPIO.iter().enumerate() {
 			assert!(*gpio_pin < 30); // RPi doesn't support any more anyway for the GPIO port
 
-			let registerIndex: usize = (gpio_pin / 10).into();
+			let register_index: usize = (gpio_pin / 10).into();
 
 			// Calculate the mask
-			mask[registerIndex] |= 0x7u32 << ((gpio_pin % 10) * 3);
+			mask[register_index] |= 0x7u32 << ((gpio_pin % 10) * 3);
 
 			// Then do the FSEL value
-			val[registerIndex] |= 0x1u32 << ((gpio_pin % 10) * 3);
+			val[register_index] |= 0x1u32 << ((gpio_pin % 10) * 3);
 		}
 
-		for registerIndex in 0..mask.len() { // registerIndex represents 32 bit offset in register
-			let mut fselValue = *gpio.offset(registerIndex as isize);
-			//println!("{}, {}, {}", registerIndex, !mask[registerIndex], val[registerIndex]);
-			let before = fselValue;
-			fselValue &= !mask[registerIndex];
-			fselValue |= val[registerIndex];
-			//println!("mask:        {:032b}", !mask[registerIndex]);
-			//println!("val:         {:032b}", val[registerIndex]);
+		for register_index in 0..mask.len() { // register_index represents 32 bit offset in register
+			let mut fsel_value = *gpio.offset(register_index as isize);
+			//println!("{}, {}, {}", register_index, !mask[register_index], val[register_index]);
+			//let before = fsel_value;
+			fsel_value &= !mask[register_index];
+			fsel_value |= val[register_index];
+			//println!("mask:        {:032b}", !mask[register_index]);
+			//println!("val:         {:032b}", val[register_index]);
 			//println!("fsel before: {:032b}", before);
-			//println!("fsel after:  {:032b}", fselValue);
-			gpio.offset(registerIndex as isize).write(fselValue);
+			//println!("fsel after:  {:032b}", fsel_value);
+			gpio.offset(register_index as isize).write(fsel_value);
 		}
 	}
 }
