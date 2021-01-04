@@ -12,8 +12,9 @@ impl Page for Logo {
 
 		self.draw.clear();
 
-		self.draw.fg(123);
+		self.draw.push_fg(123);
 		self.draw.text(((tid * 5.0).sin() * 40.0 + 45.0) as usize, 14, "MowTec!");
+		self.draw.pop_fg();
 
 		Some(&mut self.draw)
 	}

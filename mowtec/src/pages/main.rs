@@ -9,12 +9,10 @@ pub struct Main {
 
 impl Page for Main {
 	fn draw(&mut self) -> Option<&mut Draw>{
-		self.draw.fg(3);
-		self.draw.bg(7);
-
 		// Gear
 		self.draw.rect(35, 10, 30, 10);
-		self.draw.text(43, 11, get_7_segment_text(14,9,((get_time() / 1000) % 12) as usize).as_str());
+		//get_7_segment_text(43, 11, 14, 9, ((get_time() / 1000) % 12) as usize, 1, &mut self.draw);
+		get_7_segment_text(43, 11, 14, 9, 8, 1, &mut self.draw);
 
 		// Clutch
 		self.draw.rect(70, 10, 30, 3);

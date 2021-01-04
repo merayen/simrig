@@ -1,16 +1,4 @@
-//const ONE: &str = "
-//  ███\n
-//	  █\n
-//	  █\n
-//	  █\n
-//	  █\n
-//	  █\n
-//	  █\n
-//  █████
-//".trim();
-
-const WIDTH: usize = 10;
-const HEIGHT: usize = 8;
+use crate::pages::Draw;
 
 const SEVEN_SEGMENT: [u8; 12] = [
 	0b1111110, // 0
@@ -27,193 +15,48 @@ const SEVEN_SEGMENT: [u8; 12] = [
 	0b0000001, // -
 ];
 
-const NUMBERS: [[u8; WIDTH*HEIGHT]; 10] = [ // Meh, didn't complete this one
-[
-	0,1,1,1,1,1,1,1,1,0,
-	1,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,1,
-	0,1,1,1,1,1,1,1,1,0,
-],
-[
-	0,0,0,1,1,0,0,0,0,0,
-	0,0,0,0,1,1,0,0,0,0,
-	0,0,0,0,1,1,0,0,0,0,
-	0,0,0,0,1,1,0,0,0,0,
-	0,0,0,0,1,1,0,0,0,0,
-	0,0,0,0,1,1,0,0,0,0,
-	0,0,0,0,1,1,0,0,0,0,
-	0,0,1,1,1,1,1,1,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-[
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,
-],
-];
-
-pub fn get_number_text(number: u8) -> String {
-	assert!(number < 10);
-	let mut result: [char; WIDTH*HEIGHT+7] = [' '; WIDTH*HEIGHT+7];
-	let source = NUMBERS[number as usize];
-
-	let mut result_pos = 0;
-	for i in 0..source.len() {
-		if i > 0 && i % WIDTH == 0 {
-			result[result_pos] = '\n';
-			result_pos += 1;
-		}
-
-		if source[i] > 0 {
-			result[result_pos] = '█';
-		}
-
-		result_pos += 1;
-	}
-
-	result.iter().collect()
-}
-
-pub fn get_7_segment_text(width: usize, height: usize, number: usize) -> String {
-	let mut result: Vec<u8> = vec![0; width*height];
+pub fn get_7_segment_text(x: usize, y: usize, width: usize, height: usize, number: usize, color: u8, draw: &mut Draw) {
 	let source = SEVEN_SEGMENT[number];
 
 	if source & 64 > 0 {
 		for i in 1..width-1 {
-			result[i] = 1;
+			draw.plot_bg(x + i, y, color);
 		}
 	}
 
 	if source & 32 > 0 {
 		for i in 1..height/2 {
-			result[i*width + width-1] = 1;
+			draw.plot_bg(x + width - 1, i + y, color);
 		}
 	}
 
 	if source & 16 > 0 {
 		for i in height/2+1..height-1 {
-			result[i*width + width-1] = 1;
+			draw.plot_bg(x + width - 1, i + y, color);
 		}
 	}
 
 	if source & 8 > 0 {
 		for i in 1..width-1 {
-			result[width*(height-1) + i] = 1;
+			draw.plot_bg(x + i, y + height - 1, color);
 		}
 	}
 
 	if source & 4 > 0 {
 		for i in height/2+1..height-1 {
-			result[width*i] = 1;
+			draw.plot_bg(x, y+i, color);
 		}
 	}
 
 	if source & 2 > 0 {
 		for i in 1..height/2 {
-			result[width*i] = 1;
+			draw.plot_bg(x, y+i, color);
 		}
 	}
 
 	if source & 1 > 0 {
 		for i in 1..width-1 {
-			result[width*(height-1)/2 + i] = 1;
+			draw.plot_bg(x + i, y + (height-1) / 2, color);
 		}
 	}
-
-
-	// Insert line breaks
-	let mut result2: Vec<char> = vec![' '; width*height+height-1];
-	let mut result_pos = 0;
-	for i in 0..result.len() {
-		if i > 0 && i % width == 0 {
-			result2[result_pos] = '\n';
-			result_pos += 1;
-		}
-
-		if result[i] > 0 {
-			result2[result_pos] = '█';
-		}
-
-		result_pos += 1;
-	}
-
-	result2.iter().collect()
 }
