@@ -18,6 +18,10 @@ const SEVEN_SEGMENT: [u8; 12] = [
 pub fn get_7_segment_text(x: usize, y: usize, width: usize, height: usize, number: usize, color: u8, draw: &mut Draw) {
 	let source = SEVEN_SEGMENT[number];
 
+	draw.push_bg(0);
+	draw.rect_bg(x, y, width, height);
+	draw.pop_bg();
+
 	if source & 64 > 0 {
 		for i in 1..width-1 {
 			draw.plot_bg(x + i, y, color);
