@@ -27,7 +27,7 @@ const SEVEN_SEGMENT: [u8; 12] = [
 	0b0000001, // -
 ];
 
-const NUMBERS: [[u8; WIDTH*HEIGHT]; 10] = [
+const NUMBERS: [[u8; WIDTH*HEIGHT]; 10] = [ // Meh, didn't complete this one
 [
 	0,1,1,1,1,1,1,1,1,0,
 	1,0,0,0,0,0,0,0,0,1,
