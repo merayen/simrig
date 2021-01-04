@@ -10,19 +10,9 @@ pub struct Draw {
 	text: [char; WIDTH * HEIGHT],
 	fg: [u8; WIDTH * HEIGHT],
 	bg: [u8; WIDTH * HEIGHT],
-	fg_stack: Vec<u8>,
-	bg_stack: Vec<u8>,
+	pub fg_current: u8,
+	pub bg_current: u8,
 }
-
-//pub trait DrawTrait {
-//	fn plot_bg(&mut self, x: usize, y: usize, color: u8);
-//	fn clear(&mut self);
-//	fn text(&mut self, x: usize, y: usize, text: &str);
-//	fn rect(&mut self, x: usize, y: usize, width: usize, height: usize);
-//	fn fg(&mut self, code: u8);
-//	fn bg(&mut self, code: u8);
-//	fn draw(&mut self);
-//}
 
 impl Draw {
 	pub fn new() -> Draw {
@@ -30,8 +20,8 @@ impl Draw {
 			text: [' '; WIDTH * HEIGHT],
 			fg: [0; WIDTH * HEIGHT],
 			bg: [0; WIDTH * HEIGHT],
-			fg_stack: Vec::new(),
-			bg_stack: Vec::new(),
+			fg_current: 15,
+			bg_current: 0,
 		};
 	}
 
@@ -41,52 +31,12 @@ impl Draw {
 		}
 	}
 
-	pub fn current_fg(&self) -> u8 {
-		let result = self.fg_stack.last();
-		if result.is_none() {
-			return 0;
-		} else {
-			return *result.unwrap();
-		}
+	pub fn plot_fg(&mut self, x: usize, y: usize) {
+		self.fg[x + WIDTH * y] = self.fg_current;
 	}
 
-	pub fn current_bg(&self) -> u8{
-		let result = self.bg_stack.last();
-		if result.is_none() {
-			return 0;
-		} else {
-			return *result.unwrap();
-		}
-	}
-
-	pub fn push_fg(&mut self, color: u8) {
-		if self.fg_stack.len() >= 10 {
-			panic!("Forgotten to call pop_fg()? Or are you perhaps drawing a rainbow recursively?");
-		}
-		self.fg_stack.push(color);
-	}
-
-	pub fn push_bg(&mut self, color: u8) {
-		if self.bg_stack.len() >= 10 {
-			panic!("Forgotten to call pop_bg()? Or are you perhaps drawing a rainbow recursively?");
-		}
-		self.bg_stack.push(color);
-	}
-
-	pub fn pop_fg(&mut self) {
-		self.fg_stack.pop();
-	}
-
-	pub fn pop_bg(&mut self) {
-		self.bg_stack.pop();
-	}
-
-	pub fn plot_fg(&mut self, x: usize, y: usize, color: u8) {
-		self.fg[x + WIDTH * y] = color;
-	}
-
-	pub fn plot_bg(&mut self, x: usize, y: usize, color: u8) {
-		self.bg[x + WIDTH * y] = color;
+	pub fn plot_bg(&mut self, x: usize, y: usize) {
+		self.bg[x + WIDTH * y] = self.bg_current;
 	}
 
 	pub fn text(&mut self, x: usize, y: usize, text: &str) {
@@ -103,8 +53,8 @@ impl Draw {
 				if x_pos < WIDTH && y_pos < HEIGHT {
 					let pos = x_pos + y_pos * WIDTH;
 					self.text[pos] = c;
-					self.fg[pos] = self.current_fg();
-					self.bg[pos] = self.current_bg();
+					self.fg[pos] = self.fg_current;
+					self.bg[pos] = self.bg_current;
 				}
 
 				x_pos += 1;
@@ -112,29 +62,35 @@ impl Draw {
 	}
 
 	pub fn frame(&mut self, x: usize, y: usize, width: usize, height: usize) {
-		let color = self.current_bg();
 		for i in x..x+width { // Top and bottom line
-			self.bg[y * WIDTH + i] = color;
-			self.bg[(y + height - 1) * WIDTH + i] = color;
+			self.bg[y * WIDTH + i] = self.bg_current;
+			self.bg[(y + height - 1) * WIDTH + i] = self.bg_current;
 		}
 
 		for i in y+1..std::cmp::min(y+height, HEIGHT) { // Left and right line
-			self.bg[i * WIDTH + x] = color;
-			self.bg[i * WIDTH + x + width - 1] = color;
+			self.bg[i * WIDTH + x] = self.bg_current;
+			self.bg[i * WIDTH + x + width - 1] = self.bg_current;
 		}
 	}
 
 	pub fn rect_bg(&mut self, x: usize, y: usize, width: usize, height: usize) {
-		let color = self.current_bg();
 		for i in y..std::cmp::min(y+height, HEIGHT) {
 			for j in x..std::cmp::min(x+width, WIDTH) {
-				self.bg[i * WIDTH + j] = color;
+				self.bg[i * WIDTH + j] = self.bg_current;
 			}
 		}
 	}
 
 	pub fn frame_border(&mut self, x: usize, y: usize, width: usize, height: usize) {
+		for i in x..x+width { // Top and bottom line
+			self.text[y * WIDTH + i] = 'X';
+			self.text[(y + height - 1) * WIDTH + i] = 'X';
+		}
 
+		for i in y+1..std::cmp::min(y+height, HEIGHT) { // Left and right line
+			self.text[i * WIDTH + x] = 'X';
+			self.text[i * WIDTH + x + width - 1] = 'X';
+		}
 	}
 
 	pub fn draw(&mut self) { // TODO create a buffer, then print it in 1 go instead?
@@ -184,7 +140,10 @@ impl Draw {
 				output.push(';');
 				output.push('5');
 				output.push(';');
-				output.push(std::char::from_digit(fg as u32, 10).unwrap());
+				output.push(std::char::from_digit((fg % 10) as u32, 10).unwrap());
+				if fg >= 10 {
+					output.push(std::char::from_digit(((fg/10) % 10) as u32, 10).unwrap());
+				}
 				output.push('m');
 			} else {
 				term_clear_fg(&mut output);
@@ -198,7 +157,10 @@ impl Draw {
 				output.push(';');
 				output.push('5');
 				output.push(';');
-				output.push(std::char::from_digit(bg as u32, 10).unwrap());
+				output.push(std::char::from_digit((bg % 10) as u32, 10).unwrap());
+				if bg >= 10 {
+					output.push(std::char::from_digit(((bg/10) % 10) as u32, 10).unwrap());
+				}
 				output.push('m');
 			} else {
 				term_clear_bg(&mut output);
@@ -212,11 +174,9 @@ impl Draw {
 		print!("{}", string);
 		println!("\x1B[{}A\x1B[K", HEIGHT);
 
-		assert_eq!(self.fg_stack.len(), 0);
-		assert_eq!(self.bg_stack.len(), 0);
 
-		self.fg_stack.clear();
-		self.bg_stack.clear();
+		self.fg_current = 15;
+		self.bg_current = 0;
 	}
 
 }

@@ -10,11 +10,11 @@ impl Page for Logo {
 	fn draw(&mut self) -> Option<&mut Draw> {
 		let tid = get_time() as f64 / 1000.0;
 
+		self.draw.bg_current = 0;
 		self.draw.clear();
 
-		self.draw.push_fg(123);
+		self.draw.fg_current = 123;
 		self.draw.text(((tid * 5.0).sin() * 40.0 + 45.0) as usize, 14, "MowTec!");
-		self.draw.pop_fg();
 
 		Some(&mut self.draw)
 	}

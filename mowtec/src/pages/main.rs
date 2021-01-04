@@ -11,12 +11,12 @@ impl Page for Main {
 	fn draw(&mut self) -> Option<&mut Draw>{
 		// Gear
 		self.draw.frame(35, 10, 30, 10);
-		get_7_segment_text(43, 11, 12, 9, ((get_time() / 1000) % 12) as usize, 1, &mut self.draw);
+		get_7_segment_text(43, 11, 12, 9, ((get_time() / 1000) % 12) as usize, &mut self.draw);
 
 		// Clutch
-		self.draw.push_bg(3);
+		self.draw.bg_current = 3;
 		self.draw.frame(70, 10, 30, 3);
-		self.draw.pop_bg();
+		self.draw.bg_current = 15;
 		self.draw.text(71, 11, "Clutch");
 
 		// Brake
