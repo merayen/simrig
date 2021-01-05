@@ -3,7 +3,7 @@
 use crate::pages::Page;
 
 pub const WIDTH: usize = 100;
-pub const HEIGHT: usize = 30;
+pub const HEIGHT: usize = 29;
 
 
 pub struct UI {}

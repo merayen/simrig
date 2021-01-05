@@ -172,7 +172,7 @@ impl Draw {
 		let string: String = output.iter().collect();
 
 		print!("{}", string);
-		println!("\x1B[{}A\x1B[K", HEIGHT);
+		print!("\x1B[{}A\x1B[K", HEIGHT);
 
 
 		self.fg_current = 15;
