@@ -10,6 +10,7 @@ pub struct UI {}
 
 impl UI {
 	pub fn new() -> UI {
+		println!("\x1B[?25l");
 		UI {}
 	}
 
