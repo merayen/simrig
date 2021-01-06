@@ -82,15 +82,20 @@ impl Draw {
 	}
 
 	pub fn frame_border(&mut self, x: usize, y: usize, width: usize, height: usize) {
-		for i in x..x+width { // Top and bottom line
-			self.text[y * WIDTH + i] = 'X';
-			self.text[(y + height - 1) * WIDTH + i] = 'X';
+		for i in x+1..x+width-1 { // Top and bottom line
+			self.text[y * WIDTH + i] = '─';
+			self.text[(y + height - 1) * WIDTH + i] = '─';
 		}
 
-		for i in y+1..std::cmp::min(y+height, HEIGHT) { // Left and right line
-			self.text[i * WIDTH + x] = 'X';
-			self.text[i * WIDTH + x + width - 1] = 'X';
+		for i in y+1..y+height-1 { // Left and right line
+			self.text[i * WIDTH + x] = '│';
+			self.text[i * WIDTH + x + width - 1] = '│';
 		}
+
+		self.text[y * WIDTH + x] = '┌';
+		self.text[y * WIDTH + x + width - 1] = '┐';
+		self.text[(y + height - 1) * WIDTH + x + width - 1] = '┘';
+		self.text[(y + height - 1) * WIDTH + x] = '└';
 	}
 
 	pub fn draw(&mut self) { // TODO create a buffer, then print it in 1 go instead?
@@ -172,7 +177,7 @@ impl Draw {
 		let string: String = output.iter().collect();
 
 		print!("{}", string);
-		print!("\x1B[{}A\x1B[K", HEIGHT);
+		print!("\x1B[{}A\x1B[K\n", HEIGHT);
 
 
 		self.fg_current = 15;

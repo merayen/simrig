@@ -1,6 +1,6 @@
 use crate::pages::Draw;
 
-const SEVEN_SEGMENT: [u8; 12] = [
+const SEVEN_SEGMENT: [u8; 13] = [
 	0b1111110, // 0
 	0b0110000, // 1
 	0b1101101, // 2
@@ -12,7 +12,8 @@ const SEVEN_SEGMENT: [u8; 12] = [
 	0b1111111, // 8
 	0b1111011, // 9
 	0b0000000, // Nothing
-	0b0000001, // -
+	0b0010101, // Neutral
+	0b0010001, // Reverse
 ];
 
 pub fn get_7_segment_text(x: usize, y: usize, width: usize, height: usize, number: usize, draw: &mut Draw) {
