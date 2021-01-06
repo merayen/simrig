@@ -1,5 +1,7 @@
 pub mod logo;
 pub mod main;
+pub mod test;
+
 use crate::ui::{WIDTH, HEIGHT};
 
 pub trait Page {
@@ -84,18 +86,27 @@ impl Draw {
 	pub fn frame_border(&mut self, x: usize, y: usize, width: usize, height: usize) {
 		for i in x+1..x+width-1 { // Top and bottom line
 			self.text[y * WIDTH + i] = '─';
+			self.fg[y * WIDTH + i] = self.fg_current;
+				
 			self.text[(y + height - 1) * WIDTH + i] = '─';
+			self.fg[(y + height - 1) * WIDTH + i] = self.fg_current;
 		}
 
 		for i in y+1..y+height-1 { // Left and right line
 			self.text[i * WIDTH + x] = '│';
+			self.fg[i * WIDTH + x] = self.fg_current;
 			self.text[i * WIDTH + x + width - 1] = '│';
+			self.fg[i * WIDTH + x + width - 1] = self.fg_current;
 		}
 
 		self.text[y * WIDTH + x] = '┌';
+		self.fg[y * WIDTH + x] = self.fg_current;
 		self.text[y * WIDTH + x + width - 1] = '┐';
+		self.fg[y * WIDTH + x + width - 1] = self.fg_current;
 		self.text[(y + height - 1) * WIDTH + x + width - 1] = '┘';
+		self.fg[(y + height - 1) * WIDTH + x + width - 1] = self.fg_current;
 		self.text[(y + height - 1) * WIDTH + x] = '└';
+		self.fg[(y + height - 1) * WIDTH + x] = self.fg_current;
 	}
 
 	pub fn draw(&mut self) { // TODO create a buffer, then print it in 1 go instead?
