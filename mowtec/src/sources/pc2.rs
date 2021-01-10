@@ -1,5 +1,6 @@
 // Project Cars 2 data retriever
 use crate::sources::{SourceListener, Telemetry};
+use std::convert::TryInto;
 
 pub struct ProjectCars2 {
 	lol: u8,
@@ -34,7 +35,7 @@ impl SourceListener for ProjectCars2 {
 				let gear: i8;
 				if raw_telemetry[45] == 111 {
 					gear = -1;
-				} else if raw_telemetry[45] >= 96 {
+				} else if raw_telemetry[45] >= 96 && raw_telemetry[45] < 96 + 10 {
 					gear = (raw_telemetry[45] - 96) as i8;
 				} else {
 					gear = 10; // ???
@@ -46,7 +47,7 @@ impl SourceListener for ProjectCars2 {
 					clutch: raw_telemetry[16] as f32 / 255.0,
 					oil_temperature: (raw_telemetry[18] as i32 + ((raw_telemetry[19] as i32) << 8)) as f32, // TODO this correct?
 					water_temperature: 0.0,
-					fuel_level: 0.0,
+					fuel_level: f32::from_bits(u32::from_le_bytes(raw_telemetry[32..36].try_into().unwrap())),
 					speed: 0.0,
 					rpm: (raw_telemetry[40] as i32 + ((raw_telemetry[41] as i32) << 8)) as u16,
 					rpm_max: (raw_telemetry[42] as i32 + ((raw_telemetry[43] as i32) << 8)) as u16,

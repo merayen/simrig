@@ -106,6 +106,13 @@ impl Page for Main {
 			}
 		}
 
+		// Fuel level (temporary)
+		self.draw.fg_current = 0;
+		self.draw.bg_current = 0;
+		self.draw.text(0, HEIGHT - 2, format!("Fuel: {}", (self.telemetry.fuel_level * 100.0) as u8).as_str());
+		self.draw.text(20, HEIGHT - 2, format!("Oil temp: {}", self.telemetry.oil_temperature).as_str());
+
+
 		Some(&mut self.draw)
 	}
 }
