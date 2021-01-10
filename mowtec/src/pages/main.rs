@@ -1,6 +1,7 @@
 use crate::pages::{Page, Draw};
 use crate::ui::{UI, WIDTH, HEIGHT};
 use crate::fonts::get_7_segment_text;
+use crate::sources::{Telemetry, blank_telemetry};
 
 const TIRE_COLOR_TEMPS: [u8; 7] = [
 	93, // Cold
@@ -21,10 +22,11 @@ pub struct Main {
 	pub gear: i8, // -1 = R, 0 = N, 1 = 1, 2 = 2...
 	pub tire_wear: [f32; 4],
 	pub tire_temperature: [f32; 4],
+	telemetry: Telemetry,
 }
 
 impl Page for Main {
-	fn draw(&mut self) -> Option<&mut Draw>{
+	fn draw(&mut self) -> Option<&mut Draw> {
 		// Temporary frame to see borders
 		//self.draw.fg_current = 15;
 		//self.draw.frame_border(0, 0, WIDTH, HEIGHT);
@@ -33,7 +35,7 @@ impl Page for Main {
 		self.draw.bg_current = 0;
 		self.draw.rect_bg(0, 0, WIDTH, 2);
 		self.draw.bg_current = 3;
-		self.draw.rect_bg(0, 0, (self.rpm * WIDTH as f32).round() as usize, 2);
+		self.draw.rect_bg(0, 0, ((self.telemetry.rpm as f32/ self.telemetry.rpm_max as f32) * WIDTH as f32).round() as usize, 2);
 
 		// Gear
 		self.draw.fg_current = 80;
@@ -60,7 +62,7 @@ impl Page for Main {
 		self.draw.bg_current = 0;
 		self.draw.rect_bg(71, 6, 28, 1);
 		self.draw.bg_current = 123;
-		self.draw.rect_bg(71, 6, std::cmp::min(28, (28.0 * self.clutch).round() as usize) as usize, 1);
+		self.draw.rect_bg(71, 6, std::cmp::min(28, (28.0 * self.telemetry.clutch).round() as usize) as usize, 1);
 
 		// Brake
 		self.draw.fg_current = 80;
@@ -72,7 +74,7 @@ impl Page for Main {
 		self.draw.bg_current = 0;
 		self.draw.rect_bg(71, 10, 28, 1);
 		self.draw.bg_current = 9;
-		self.draw.rect_bg(71, 10, std::cmp::min(28, (28.0 * self.brake).round() as usize) as usize, 1);
+		self.draw.rect_bg(71, 10, std::cmp::min(28, (28.0 * self.telemetry.brake).round() as usize) as usize, 1);
 
 		// Throttle
 		self.draw.fg_current = 80;
@@ -84,7 +86,7 @@ impl Page for Main {
 		self.draw.bg_current = 0;
 		self.draw.rect_bg(71, 14, 28, 1);
 		self.draw.bg_current = 2;
-		self.draw.rect_bg(71, 14, std::cmp::min(28, (28.0 * self.throttle).round() as usize) as usize, 1);
+		self.draw.rect_bg(71, 14, std::cmp::min(28, (28.0 * self.telemetry.throttle).round() as usize) as usize, 1);
 
 
 		// Tires
@@ -119,6 +121,11 @@ impl Main {
 			tire_wear: [0.0; 4],
 			tire_temperature: [0.0; 4],
 			rpm: 0.0,
+			telemetry: blank_telemetry(),
 		};
+	}
+
+	pub fn set_telemetry(&mut self, telemetry: Telemetry) {
+		self.telemetry = telemetry;
 	}
 }
