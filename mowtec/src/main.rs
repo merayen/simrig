@@ -9,7 +9,7 @@ mod sources;
 use crate::util::get_time;
 
 // This method exists as I gave up fighting "ProjectCars2 does not have start()"-like error, though both the trait and itself has it...
-fn noe(telemetrySource: &mut impl sources::SourceListener) -> std::sync::mpsc::Receiver<sources::Telemetry> {
+fn shitty_hack(telemetrySource: &mut impl sources::SourceListener) -> std::sync::mpsc::Receiver<sources::Telemetry> {
 	telemetrySource.start()
 }
 
@@ -21,7 +21,8 @@ fn main() {
 	let mut main = pages::main::Main::new();
 	let mut test = pages::test::Test::new();
 	let mut telemetrySource = sources::pc2::ProjectCars2::new();
-	let telemetryChannel = noe(&mut telemetrySource);
+	let telemetryChannel = shitty_hack(&mut telemetrySource);
+
 	loop {
 		let telemetry = telemetryChannel.try_recv();
 		if telemetry.is_ok() {
@@ -31,7 +32,7 @@ fn main() {
 		main.rpm = (t % 5000.0) as f32 / 5000.0;
 		main.brake = ((t + 333.0) % 1000.0) as f32 / 1000.0;
 		main.clutch = ((t + 666.0) % 1000.0) as f32 / 1000.0;
-		main.gear = ((get_time() / 1000) % 8) as i8 - 1;
+		//main.gear = ((get_time() / 1000) % 8) as i8 - 1;
 
 		for i in 0..4 {
 			main.tire_wear[i] = ((((t) + 250.0 * i as f64) % 1000.0) / 1000.0) as f32;

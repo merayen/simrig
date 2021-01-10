@@ -43,12 +43,12 @@ impl Page for Main {
 
 		self.draw.bg_current = 16;
 		let gear;
-		if self.gear == -1 {
+		if self.telemetry.gear == -1 {
 			gear = 12;
-		} else if self.gear == 0 {
+		} else if self.telemetry.gear == 0 {
 			gear = 11;
 		} else {
-			gear = self.gear;
+			gear = self.telemetry.gear;
 		}
 		get_7_segment_text(43, 6, 14, 19, gear as usize, &mut self.draw);
 
