@@ -13,7 +13,7 @@ const SEVEN_SEGMENT: [u8; 13] = [
 	0b1111011, // 9
 	0b0000000, // Nothing
 	0b0010101, // Neutral
-	0b0010001, // Reverse
+	0b0000101, // Reverse
 ];
 
 pub fn get_7_segment_text(x: usize, y: usize, width: usize, height: usize, number: usize, draw: &mut Draw) {

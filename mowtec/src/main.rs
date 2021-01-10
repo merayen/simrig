@@ -4,6 +4,7 @@ mod ui;
 mod rpmleds;
 mod pages;
 mod fonts;
+mod sources;
 
 use crate::util::get_time;
 
