@@ -35,8 +35,8 @@ fn main() {
 		//main.gear = ((get_time() / 1000) % 8) as i8 - 1;
 
 		for i in 0..4 {
-			main.tire_wear[i] = ((((t) + 250.0 * i as f64) % 1000.0) / 1000.0) as f32;
-			main.tire_temperature[i] = ((((t/10.0) + 250.0 * i as f64) % 1000.0) / 1000.0) as f32;
+			//main.tire_wear[i] = ((((t) + 250.0 * i as f64) % 1000.0) / 1000.0) as f32;
+			//main.tire_temperature[i] = ((((t/10.0) + 250.0 * i as f64) % 1000.0) / 1000.0) as f32;
 		}
 
 		ui.draw(&mut main);
