@@ -1,3 +1,4 @@
+/** Lights up LEDs according to RPM and state (like when gear is in N, two blue LEDs) **/
 use crate::led;
 
 pub struct RPMLEDs<'a> {
@@ -34,7 +35,7 @@ impl<'a> RPMLEDs<'a> {
 				libc::usleep(2000);
 			}
 
-			self.led_controller.update();
+			self.led_controller.update(|led_index, value|{}); // TODO make lambda enable/disable LEDs
 		}
 	}
 }

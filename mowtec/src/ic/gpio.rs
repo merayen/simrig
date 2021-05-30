@@ -17,6 +17,8 @@ const GPIO_OUT: [u8; GPIO_COUNT] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
 pub struct GPIO {
 	gpio: *mut u32,
 	gpio_map: *mut libc::c_void,
+	input_pins: Vec<u8>,
+	output_pins: Vec<u8>,
 }
 
 /**
@@ -32,7 +34,7 @@ impl GPIO {
 		assert!(version.starts_with("Raspberry Pi 4 Model B Rev"), "I only do RPi 4B");
 	}
 
-	pub fn new() -> GPIO {
+	pub fn new(input_pins: Vec<u8>, output_pins: Vec<u8>) -> GPIO {
 		GPIO::check_platform();
 
 		// https://doc.rust-lang.org/std/ffi/struct.CString.html#method.as_ptr
@@ -72,6 +74,8 @@ impl GPIO {
 		let instance = GPIO {
 			gpio: gpio,
 			gpio_map: gpio_map,
+			input_pins: input_pins,
+			output_pins: output_pins,
 		};
 
 		unsafe {
@@ -87,6 +91,8 @@ impl GPIO {
 	}
 
 	pub fn set(&self, pin: u8, value: bool) {
+		assert!(self.output_pins.contains(&pin), "GPIO pin {} is not set as an output pin", pin);
+
 		if value {
 			let mut gpsel;
 			unsafe {
@@ -114,8 +120,8 @@ impl GPIO {
 		let mut val = [0u32; 3];
 
 		// Sanity check
-		for a in GPIO_OUT.iter() {
-			for b in GPIO_IN.iter() {
+		for a in self.output_pins.iter() {
+			for b in self.input_pins.iter() {
 				assert!(a != b);
 			}
 		}
@@ -134,12 +140,12 @@ impl GPIO {
 		};
 
 		// Configure output pins
-		for gpio_pin in GPIO_OUT.iter() {
+		for gpio_pin in self.output_pins.iter() {
 			setPinMode(*gpio_pin, 0x1u32);
 		}
 
 		// Configure input pins
-		for gpio_pin in GPIO_IN.iter() {
+		for gpio_pin in self.input_pins.iter() {
 			setPinMode(*gpio_pin, 0x0u32);
 		}
 

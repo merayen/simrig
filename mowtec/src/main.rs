@@ -15,9 +15,20 @@ fn shitty_hack(telemetrySource: &mut impl sources::SourceListener) -> std::sync:
 }
 
 fn main() {
-	let mut gpio = ic::gpio::GPIO::new();
-	let mut ctrl = led::LEDController::new();
-	let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);
+	let mut input_pins: Vec<u8> = Vec::new();
+	let mut output_pins: Vec<u8> = Vec::new();
+	output_pins.push(17); // Configure this GPIO 17 pin to be used for chip enable (CS) on the MCP23S17 chip for the LEDs
+
+
+	let mut gpio = ic::gpio::GPIO::new(input_pins, output_pins);
+
+	loop {
+		gpio.set(17, false);
+		gpio.set(17, true);
+	}
+
+	//let mut ctrl = led::LEDController::new(11);
+	//let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);
 	let mut ui = ui::UI::new();
 	let mut logo = pages::logo::Logo::new();
 	let mut main = pages::main::Main::new();
