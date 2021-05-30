@@ -22,10 +22,11 @@ fn main() {
 
 	let mut gpio = ic::gpio::GPIO::new(input_pins, output_pins);
 
-	loop {
-		gpio.set(17, false);
-		gpio.set(17, true);
-	}
+	let mut mcp23s17_output_ports: Vec<u8> = Vec::new();
+	let mut mcp23s17 = ic::mcp23s17::MCP23S17::new("/dev/spidev0.0", mcp23s17_output_ports, |value|{gpio.set(17, value)});
+
+
+	loop {}
 
 	//let mut ctrl = led::LEDController::new(11);
 	//let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);
