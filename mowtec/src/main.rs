@@ -5,6 +5,7 @@ mod rpmleds;
 mod pages;
 mod fonts;
 mod sources;
+mod ic;
 
 use crate::util::get_time;
 
@@ -14,6 +15,7 @@ fn shitty_hack(telemetrySource: &mut impl sources::SourceListener) -> std::sync:
 }
 
 fn main() {
+	let mut gpio = ic::gpio::GPIO::new();
 	let mut ctrl = led::LEDController::new();
 	let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);
 	let mut ui = ui::UI::new();
