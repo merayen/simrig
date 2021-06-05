@@ -18,12 +18,22 @@ fn main() {
 	let mut input_pins: Vec<u8> = Vec::new();
 	let mut output_pins: Vec<u8> = Vec::new();
 	output_pins.push(17); // Configure this GPIO 17 pin to be used for chip enable (CS) on the MCP23S17 chip for the LEDs
+	output_pins.push(27); // RESET for all ICs connected (hopefully they have 0v reset)
 
 
 	let mut gpio = ic::gpio::GPIO::new(input_pins, output_pins);
 
+	// Reset all ICs connected via SPI
+	let mut wait_time = std::time::Duration::from_millis(1);
+	gpio.set(27, true); // Make it high, does not reset
+	std::thread::sleep(wait_time);
+	gpio.set(27, false); // Do the reset
+	std::thread::sleep(wait_time);
+	gpio.set(27, true); // Done resetting
+	std::thread::sleep(wait_time);
+
 	let mut mcp23s17_output_ports: Vec<u8> = Vec::new();
-	let mut mcp23s17 = ic::mcp23s17::MCP23S17::new("/dev/spidev0.0", mcp23s17_output_ports, |value|{gpio.set(17, value)});
+	let mut mcp23s17 = ic::mcp23s17::MCP23S17::new("/dev/spidev0.0", 0u8, 65535, |value|{gpio.set(17, value)});
 
 
 	loop {}

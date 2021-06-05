@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 libc = "0.2.0"
 byteorder = "1.4.2"
+spidev = "0.4.1"
