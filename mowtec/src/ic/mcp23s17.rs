@@ -52,28 +52,38 @@ impl<F> MCP23S17<F> where F: Fn(bool) {
 
 		let options = spidev::SpidevOptions::new()
 			.bits_per_word(8)
-			.max_speed_hz(1_000)
+			.max_speed_hz(1000_000)
 			.mode(spidev::SpiModeFlags::SPI_MODE_0)
 			.build();
 
 		assert!((*instance).spi.configure(&options).is_ok());
 
-		// Init output ports
-		MCP23S17::send(instance, IODIRA, 0u8);
-		MCP23S17::send(instance, IODIRB, 0u8);
-		//MCP23S17::send(instance, IODIRA, (!(*instance).output_ports & 255) as u8);
-		//MCP23S17::send(instance, IODIRB, (!(*instance).output_ports >> 8) as u8);
-		MCP23S17::send(instance, GPIOA, 255u8);
-		MCP23S17::send(instance, GPIOB, 255u8);
-		MCP23S17::send(instance, OLATA, 255u8);
-		MCP23S17::send(instance, OLATB, 255u8);
+		let mut wait_time = std::time::Duration::from_millis(1);
+		((*instance).cs_pin_func)(true);
+		std::thread::sleep(wait_time);
+		((*instance).cs_pin_func)(false);
+		std::thread::sleep(wait_time);
+		((*instance).cs_pin_func)(true);
+		std::thread::sleep(wait_time);
 
-		assert!(false, "Det virker!");
+		// Init output ports
+		MCP23S17::send(instance, IODIRA, (!(*instance).output_ports & 255) as u8);
+		MCP23S17::send(instance, IODIRB, (!(*instance).output_ports >> 8) as u8);
+	}
+
+	pub fn set(&mut self, outputs: u16) {
+		let output_pins = outputs & self.output_ports; // Only change the outputs
+		MCP23S17::send(self, GPIOA, (output_pins & 255) as u8);
+		MCP23S17::send(self, GPIOB, (output_pins >> 8) as u8);
 	}
 
 	fn send(&mut self, register: u8, value: u8) {
+		//let mut wait_time = std::time::Duration::from_nanos(1);
+		//std::thread::sleep(wait_time);
 		(self.cs_pin_func)(false);
+		//std::thread::sleep(wait_time);
 		self.spi.write(&[self.addr | 64, register, value]).unwrap();
+		//std::thread::sleep(wait_time);
 		(self.cs_pin_func)(true);
 	}
 

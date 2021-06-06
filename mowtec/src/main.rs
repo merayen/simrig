@@ -1,7 +1,7 @@
 mod util;
 mod led;
 mod ui;
-mod rpmleds;
+//mod rpmleds;
 mod pages;
 mod fonts;
 mod sources;
@@ -20,7 +20,6 @@ fn main() {
 	output_pins.push(17); // Configure this GPIO 17 pin to be used for chip enable (CS) on the MCP23S17 chip for the LEDs
 	output_pins.push(27); // RESET for all ICs connected (hopefully they have 0v reset)
 
-
 	let mut gpio = ic::gpio::GPIO::new(input_pins, output_pins);
 
 	// Reset all ICs connected via SPI
@@ -34,11 +33,24 @@ fn main() {
 
 	let mut mcp23s17_output_ports: Vec<u8> = Vec::new();
 	let mut mcp23s17 = ic::mcp23s17::MCP23S17::new("/dev/spidev0.0", 0u8, 65535, |value|{gpio.set(17, value)});
+	let (gpio_tx, gpio_rx) = std::sync::mpsc::sync_channel(0); // Use gpio_tx to change GPIO pins on the MCP23S17
 
+	let gpio_tx_led = gpio_tx.clone();
+	//let mut led = led::LEDController::new(11, 10, 10, move|ports|{gpio_tx_led.send(ports.iter().enumerate().map(|(i,x)|(*x as u16) << i).sum::<u16>()).unwrap()});
+	//let mut led = led::LEDController::new(11, 10, 10, |ports|{gpio_tx_led.send(255u16).unwrap()});
+	let mut led = led::LEDController::new(11, 10, 10).start(|ports|{});
 
-	loop {}
+	std::thread::spawn(move||{
+		loop {
+			gpio_rx.recv().unwrap();
+		}
+	});
 
-	//let mut ctrl = led::LEDController::new(11);
+	loop {
+		gpio_tx.send(255u16).unwrap();
+		gpio_tx.send(0u16).unwrap();
+	}
+
 	//let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);
 	let mut ui = ui::UI::new();
 	let mut logo = pages::logo::Logo::new();
