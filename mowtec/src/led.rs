@@ -1,33 +1,16 @@
 /** Turns LEDs on and off. Also pulsewidth modulates them **/
-use std::io::prelude::*;
-use crate::ic::mcp23s17::MCP23S17;
 use std::sync::mpsc::{SyncSender, Receiver};
-
-pub const LED_COUNT: usize = 10;
-pub const LED_MAX_POWER: u8 = 10;
 
 pub struct LEDController {
 	hz: u32,
-	resolution: u8,
 	step_duration: u64, // Microseconds
-
-	// Value for each LED. 0.0 = no light. 0.5 = 50% light, 1.0 = yes
-	led_power: Vec<f32>,
 }
 
 impl LEDController {
-	pub fn new(count: usize, resolution: u8, hz: u32) -> LEDController {
-		let mut led_power: Vec<f32> = Vec::new();
-
-		for _ in 0..count {
-			led_power.push(0f32);
-		}
-
+	pub fn new(resolution: u8, hz: u32) -> LEDController {
 		LEDController {
 			hz: hz,
-			resolution: resolution,
 			step_duration: 1000_000u64 / (hz as u64) / (resolution as u64),
-			led_power: led_power,
 		}
 	}
 
@@ -56,7 +39,7 @@ impl LEDController {
 				}
 
 				if has_changes {
-					tx_led_state.send(led_state.clone());
+					tx_led_state.send(led_state.clone()).unwrap();
 				}
 
 				{
@@ -74,10 +57,5 @@ impl LEDController {
 		});
 
 		(tx_led_power, rx_led_state)
-	}
-
-	pub fn set(&mut self, index: usize, mut power: f32) {
-		if power > 1f32 { power = 1f32; } else if power < 0f32 { power = 0f32; }
-		self.led_power[index] = power;
 	}
 }

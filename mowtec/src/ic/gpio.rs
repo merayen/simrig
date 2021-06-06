@@ -1,18 +1,9 @@
 /** Configure the GPIO ports on Raspberry Pi 4B **/
 use std::io::prelude::*;
 
-pub const GPIO_COUNT: usize = 10;
-pub const LED_MAX_POWER: u8 = 10;
-
 // Registers, 32-bit address offsets
 const GPSET0: isize = 0x1C / 4;
 const GPCLR0: isize = 0x28 / 4;
-
-// Which GPIO ports to initialize as outputs
-const GPIO_IN: [u8; GPIO_COUNT] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
-
-// Which GPIO ports to initialize as inputs
-const GPIO_OUT: [u8; GPIO_COUNT] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
 
 pub struct GPIO {
 	gpio: *mut u32,
@@ -98,7 +89,7 @@ impl GPIO {
 			unsafe {
 				gpsel = *self.gpio.offset(GPSET0);
 			}
-			gpsel |= (1 << pin);
+			gpsel |= 1 << pin;
 			unsafe {
 				self.gpio.offset(GPSET0).write(gpsel);
 			}
@@ -107,7 +98,7 @@ impl GPIO {
 			unsafe {
 				gpclr = *self.gpio.offset(GPCLR0);
 			}
-			gpclr |= (1 << pin);
+			gpclr |= 1 << pin;
 			unsafe {
 				self.gpio.offset(GPCLR0).write(gpclr);
 			}
@@ -126,7 +117,7 @@ impl GPIO {
 			}
 		}
 
-		let mut setPinMode = |gpio_pin: u8, value: u32| {
+		let mut set_pin_mode = |gpio_pin: u8, value: u32| {
 			assert!(gpio_pin < 30); // RPi doesn't support any more anyway for the GPIO port
 			assert!(value <= 0x7u32);
 
@@ -141,12 +132,12 @@ impl GPIO {
 
 		// Configure output pins
 		for gpio_pin in self.output_pins.iter() {
-			setPinMode(*gpio_pin, 0x1u32);
+			set_pin_mode(*gpio_pin, 0x1u32);
 		}
 
 		// Configure input pins
 		for gpio_pin in self.input_pins.iter() {
-			setPinMode(*gpio_pin, 0x0u32);
+			set_pin_mode(*gpio_pin, 0x0u32);
 		}
 
 		for register_index in 0..mask.len() { // register_index represents 32 bit offset in register

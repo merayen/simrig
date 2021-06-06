@@ -1,5 +1,5 @@
 use crate::pages::{Page, Draw};
-use crate::ui::{UI, WIDTH, HEIGHT};
+use crate::ui::{WIDTH};
 
 
 pub struct Test {

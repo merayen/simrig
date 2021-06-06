@@ -10,25 +10,25 @@ pub struct MCP23S17<F> {
 
 pub const IODIRA: u8 = 0x00;
 pub const IODIRB: u8 = 0x01;
-pub const IPOLA: u8 = 0x02;
-pub const IPOLB: u8 = 0x03;
-pub const GPINTENA: u8 = 0x04;
-pub const GPINTENB: u8 = 0x05;
-pub const DEFVALA: u8 = 0x06;
-pub const DEFVALB: u8 = 0x07;
-pub const INTCONA: u8 = 0x08;
-pub const INTCONB: u8 = 0x09;
-pub const IOCON: u8 = 0x0A;
-pub const GPPUA: u8 = 0x0C;
-pub const GPPUB: u8 = 0x0D;
-pub const INTFA: u8 = 0x0E;
-pub const INTFB: u8 = 0x0F;
-pub const INTCAPA: u8 = 0x10;
-pub const INTCAPB: u8 = 0x11;
+//pub const IPOLA: u8 = 0x02;
+//pub const IPOLB: u8 = 0x03;
+//pub const GPINTENA: u8 = 0x04;
+//pub const GPINTENB: u8 = 0x05;
+//pub const DEFVALA: u8 = 0x06;
+//pub const DEFVALB: u8 = 0x07;
+//pub const INTCONA: u8 = 0x08;
+//pub const INTCONB: u8 = 0x09;
+//pub const IOCON: u8 = 0x0A;
+//pub const GPPUA: u8 = 0x0C;
+//pub const GPPUB: u8 = 0x0D;
+//pub const INTFA: u8 = 0x0E;
+//pub const INTFB: u8 = 0x0F;
+//pub const INTCAPA: u8 = 0x10;
+//pub const INTCAPB: u8 = 0x11;
 pub const GPIOA: u8 = 0x12;
 pub const GPIOB: u8 = 0x13;
-pub const OLATA: u8 = 0x14;
-pub const OLATB: u8 = 0x15;
+//pub const OLATA: u8 = 0x14;
+//pub const OLATB: u8 = 0x15;
 
 impl<F> MCP23S17<F> where F: Fn(bool) {
 	pub fn new(device: &str, addr: u8, output_ports: u16, cs_pin_func: F) -> MCP23S17<F> {
@@ -40,12 +40,12 @@ impl<F> MCP23S17<F> where F: Fn(bool) {
 			cs_pin_func: cs_pin_func,
 		};
 
-		MCP23S17::configure(&mut instance, device);
+		MCP23S17::configure(&mut instance);
 
 		instance
 	}
 
-	fn configure(instance: &mut MCP23S17<F>, device: &str) {
+	fn configure(instance: &mut MCP23S17<F>) {
 		((*instance).cs_pin_func)(true); // CS is high when chip is not selected. Make sure it starts there
 
 		let options = spidev::SpidevOptions::new()
@@ -56,7 +56,7 @@ impl<F> MCP23S17<F> where F: Fn(bool) {
 
 		assert!((*instance).spi.configure(&options).is_ok());
 
-		let mut wait_time = std::time::Duration::from_millis(1);
+		let wait_time = std::time::Duration::from_millis(1);
 		((*instance).cs_pin_func)(true);
 		std::thread::sleep(wait_time);
 		((*instance).cs_pin_func)(false);
