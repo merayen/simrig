@@ -33,22 +33,33 @@ fn main() {
 
 	let mut mcp23s17_output_ports: Vec<u8> = Vec::new();
 	let mut mcp23s17 = ic::mcp23s17::MCP23S17::new("/dev/spidev0.0", 0u8, 65535, |value|{gpio.set(17, value)});
-	let (gpio_tx, gpio_rx) = std::sync::mpsc::sync_channel(0); // Use gpio_tx to change GPIO pins on the MCP23S17
+	let (gpio_tx, gpio_rx) = std::sync::mpsc::sync_channel::<u16>(0); // Use gpio_tx to change GPIO pins on the MCP23S17
 
 	let gpio_tx_led = gpio_tx.clone();
 	//let mut led = led::LEDController::new(11, 10, 10, move|ports|{gpio_tx_led.send(ports.iter().enumerate().map(|(i,x)|(*x as u16) << i).sum::<u16>()).unwrap()});
 	//let mut led = led::LEDController::new(11, 10, 10, |ports|{gpio_tx_led.send(255u16).unwrap()});
-	let mut led = led::LEDController::new(11, 10, 10).start(|ports|{});
+	let mut led = led::LEDController::new(11, 10, 10);
+	let (tx_led_power, rx_led_state) = led.start();
 
-	std::thread::spawn(move||{
+	{
+		std::thread::spawn(move||{
+			loop {
+				let pins: u16 = gpio_rx.recv().unwrap();
+				mcp23s17.set(pins);
+			}
+		});
+	}
+
+	std::thread::spawn(move||{ // Receives led_states and send them to gpio
 		loop {
-			gpio_rx.recv().unwrap();
+			let led_state = rx_led_state.recv().unwrap();
+			//gpio_tx.send(led_state.iter().enumerate().map(|(i,x)|(*x as u16) << i).sum::<u16>()).unwrap();
 		}
 	});
 
 	loop {
-		gpio_tx.send(255u16).unwrap();
-		gpio_tx.send(0u16).unwrap();
+		//gpio_tx.send(255u16).unwrap();
+		//gpio_tx.send(0u16).unwrap();
 	}
 
 	//let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);

@@ -4,7 +4,6 @@ use std::io::prelude::*;
 pub struct MCP23S17<F> {
 	addr: u8, // 0 to 7, which address this IC is
 	output_ports: u16,
-	fd: libc::c_int,
 	spi: spidev::Spidev,
 	cs_pin_func: F,
 }
@@ -37,7 +36,6 @@ impl<F> MCP23S17<F> where F: Fn(bool) {
 		let mut instance = MCP23S17 {
 			addr: addr,
 			output_ports: output_ports,
-			fd: 0,
 			spi: spidev::Spidev::open(device).unwrap(), // TODO Probably move out so we can use the SPI pins for other ICs too!
 			cs_pin_func: cs_pin_func,
 		};
@@ -85,11 +83,5 @@ impl<F> MCP23S17<F> where F: Fn(bool) {
 		self.spi.write(&[self.addr | 64, register, value]).unwrap();
 		//std::thread::sleep(wait_time);
 		(self.cs_pin_func)(true);
-	}
-
-	pub fn end(&self) {
-		unsafe {
-			libc::close(self.fd);
-		}
 	}
 }
