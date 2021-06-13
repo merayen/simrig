@@ -2,17 +2,14 @@
 use crate::sources::{SourceListener, Telemetry};
 use std::convert::TryInto;
 
-pub struct ProjectCars2 {
-	lol: u8,
-}
+pub struct ProjectCars2 { }
 
 impl SourceListener for ProjectCars2 {
 	fn start(&self) -> std::sync::mpsc::Receiver<Telemetry> {
 		let (tx, rx) = std::sync::mpsc::sync_channel::<Telemetry>(0);
-		let mut thread = std::thread::spawn(move || {
-
-			let mut socket = std::net::UdpSocket::bind("192.168.1.255:5606").unwrap();
-			socket.set_nonblocking(true);
+		std::thread::spawn(move || {
+			let socket = std::net::UdpSocket::bind("192.168.1.255:5606").unwrap();
+			socket.set_nonblocking(true).unwrap();
 
 			let mut buf = [0; 560];
 			let mut raw_telemetry = [0; 560];
@@ -20,10 +17,10 @@ impl SourceListener for ProjectCars2 {
 			loop {
 
 				// Gather the latest packet, we don't care to replay old ones
-				for i in 0..1000 { // Don't skip messages forever
+				for _ in 0..1000 { // Don't skip messages forever
 					let read_results = socket.recv_from(&mut buf);
 					if read_results.is_ok() {
-						let (size, source) = read_results.unwrap();
+						let (size, _) = read_results.unwrap();
 						if size == 559 {
 							raw_telemetry = buf;
 						}
@@ -56,7 +53,7 @@ impl SourceListener for ProjectCars2 {
 					engine_damage: 0.0,
 					engine_torque: 0.0,
 				};
-				tx.send(telemetry);
+				tx.send(telemetry).unwrap();
 			} 
 		});
 
@@ -66,6 +63,6 @@ impl SourceListener for ProjectCars2 {
 
 impl ProjectCars2 {
 	pub fn new() -> Self {
-		return ProjectCars2 {lol: 0};
+		return ProjectCars2 {};
 	}
 }

@@ -1,1 +1,2 @@
-cargo run #--release
+cargo build &&
+sudo target/debug/mowtec

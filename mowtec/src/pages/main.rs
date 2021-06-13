@@ -1,5 +1,5 @@
 use crate::pages::{Page, Draw};
-use crate::ui::{UI, WIDTH, HEIGHT};
+use crate::ui::{WIDTH, HEIGHT};
 use crate::fonts::get_7_segment_text;
 use crate::sources::{Telemetry, blank_telemetry};
 

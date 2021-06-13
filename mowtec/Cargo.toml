@@ -7,5 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libc = "0.2.0"
+libc = "0.2.97"
 byteorder = "1.4.2"
+spidev = "0.4.1"

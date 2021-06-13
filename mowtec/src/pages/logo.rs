@@ -1,5 +1,4 @@
 use crate::pages::{Page, Draw};
-use crate::ui::UI;
 use crate::util::get_time;
 
 pub struct Logo {

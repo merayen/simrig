@@ -123,7 +123,7 @@ impl Draw {
 			output.push('1');
 			output.push('5');
 			output.push('m');
-		};
+		}
 
 		fn term_clear_bg(output: &mut Vec<char>) {
 			output.push('\x1B');
@@ -135,7 +135,7 @@ impl Draw {
 			output.push(';');
 			output.push('0');
 			output.push('m');
-		};
+		}
 
 
 		for i in 0..WIDTH*HEIGHT {

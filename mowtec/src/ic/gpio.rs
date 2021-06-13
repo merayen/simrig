@@ -1,21 +1,15 @@
+/** Configure the GPIO ports on Raspberry Pi 4B **/
 use std::io::prelude::*;
-
-pub const GPIO_COUNT: usize = 10;
-pub const LED_MAX_POWER: u8 = 10;
 
 // Registers, 32-bit address offsets
 const GPSET0: isize = 0x1C / 4;
 const GPCLR0: isize = 0x28 / 4;
 
-// Which GPIO ports to initialize as outputs
-const GPIO_IN: [u8; GPIO_COUNT] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
-
-// Which GPIO ports to initialize as inputs
-const GPIO_OUT: [u8; GPIO_COUNT] = [17, 27, 22, 23, 24, 25, 5, 6, 16, 26];
-
 pub struct GPIO {
 	gpio: *mut u32,
 	gpio_map: *mut libc::c_void,
+	input_pins: Vec<u8>,
+	output_pins: Vec<u8>,
 }
 
 /**
@@ -31,7 +25,7 @@ impl GPIO {
 		assert!(version.starts_with("Raspberry Pi 4 Model B Rev"), "I only do RPi 4B");
 	}
 
-	pub fn new() -> GPIO {
+	pub fn new(input_pins: Vec<u8>, output_pins: Vec<u8>) -> GPIO {
 		GPIO::check_platform();
 
 		// https://doc.rust-lang.org/std/ffi/struct.CString.html#method.as_ptr
@@ -68,28 +62,34 @@ impl GPIO {
 		// Direct mapping of GPIO registers that we can read and write to
 		let gpio = gpio_map as *mut u32;
 
+		let instance = GPIO {
+			gpio: gpio,
+			gpio_map: gpio_map,
+			input_pins: input_pins,
+			output_pins: output_pins,
+		};
+
 		unsafe {
 			// Make additional checks the IC is the BCM2711 (?)
 			if *gpio.offset(60) == 0x6770696f {
 				panic!("This is not a BCM2711! This code is hardcoded for that exact chip, not something identifying as {}", *gpio.offset(60));
 			}
 
-			GPIO::configure(gpio);
+			instance.configure(gpio);
 		}
 
-		GPIO {
-			gpio: gpio,
-			gpio_map: gpio_map,
-		}
+		instance
 	}
 
-	pub fn set(pin: u8, value: bool) {
+	pub fn set(&self, pin: u8, value: bool) {
+		assert!(self.output_pins.contains(&pin), "GPIO pin {} is not set as an output pin", pin);
+
 		if value {
 			let mut gpsel;
 			unsafe {
 				gpsel = *self.gpio.offset(GPSET0);
 			}
-			gpsel |= (1 << pin);
+			gpsel |= 1 << pin;
 			unsafe {
 				self.gpio.offset(GPSET0).write(gpsel);
 			}
@@ -98,7 +98,7 @@ impl GPIO {
 			unsafe {
 				gpclr = *self.gpio.offset(GPCLR0);
 			}
-			gpclr |= (1 << pin);
+			gpclr |= 1 << pin;
 			unsafe {
 				self.gpio.offset(GPCLR0).write(gpclr);
 			}
@@ -106,19 +106,19 @@ impl GPIO {
 	}
 
 	// Sets the FSEL... values for all the LEDs
-	unsafe fn configure(gpio: *mut u32) {
+	unsafe fn configure(&self, gpio: *mut u32) {
 		let mut mask = [0u32; 3];
 		let mut val = [0u32; 3];
 
 		// Sanity check
-		for a in GPIO_OUT.iter() {
-			for b in GPIO_IN.iter() {
+		for a in self.output_pins.iter() {
+			for b in self.input_pins.iter() {
 				assert!(a != b);
 			}
 		}
 
-		fn setPinMode(gpio_pin: u32, value: u32) {
-			assert!(*gpio_pin < 30); // RPi doesn't support any more anyway for the GPIO port
+		let mut set_pin_mode = |gpio_pin: u8, value: u32| {
+			assert!(gpio_pin < 30); // RPi doesn't support any more anyway for the GPIO port
 			assert!(value <= 0x7u32);
 
 			let register_index: usize = (gpio_pin / 10).into();
@@ -128,16 +128,16 @@ impl GPIO {
 
 			// Store the value
 			val[register_index] |= value << ((gpio_pin % 10) * 3);
-		}
+		};
 
 		// Configure output pins
-		for gpio_pin in GPIO_OUT.iter() {
-			setPinMode(gpio_pin, 0x1u32);
+		for gpio_pin in self.output_pins.iter() {
+			set_pin_mode(*gpio_pin, 0x1u32);
 		}
 
 		// Configure input pins
-		for gpio_pin in GPIO_IN.iter() {
-			setPinMode(gpio_pin, 0x0u32);
+		for gpio_pin in self.input_pins.iter() {
+			set_pin_mode(*gpio_pin, 0x0u32);
 		}
 
 		for register_index in 0..mask.len() { // register_index represents 32 bit offset in register
