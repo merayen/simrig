@@ -20,46 +20,49 @@ fn main() {
 	output_pins.push(17); // Configure this GPIO 17 pin to be used for chip enable (CS) on the MCP23S17 chip for the LEDs
 	output_pins.push(27); // RESET for all ICs connected (hopefully they have 0v reset)
 
-	let gpio = ic::gpio::GPIO::new(input_pins, output_pins);
-
-	// Reset all ICs connected via SPI
-	let wait_time = std::time::Duration::from_millis(1);
-	gpio.set(27, true); // Make it high, does not reset
-	std::thread::sleep(wait_time);
-	gpio.set(27, false); // Do the reset
-	std::thread::sleep(wait_time);
-	gpio.set(27, true); // Done resetting
-	std::thread::sleep(wait_time);
-
-	let mut mcp23s17 = ic::mcp23s17::MCP23S17::new("/dev/spidev0.0", 0u8, 65535, |value|{gpio.set(17, value)});
 	let (gpio_tx, gpio_rx) = std::sync::mpsc::sync_channel::<u16>(0); // Use gpio_tx to change GPIO pins on the MCP23S17
 
 	let led = led::LEDController::new(10, 10);
 	let (tx_led_power, rx_led_state) = led.start();
 
-	std::thread::spawn(move||{ // Receives led_states and send them to gpio
+	//std::thread::spawn(move||{ // Receives led_states and send them to gpio
+	//	loop {
+	//		let led_state = rx_led_state.recv().unwrap();
+	//		gpio_tx.send(led_state.iter().enumerate().map(|(i,x)|(*x as u16) << i).sum::<u16>()).unwrap();
+	//	}
+	//});
+
+
+	// Hardware communication thread
+	std::thread::spawn(move||{
+		let gpio = ic::gpio::GPIO::new(input_pins, output_pins); // TODO this is the problematic one
+
+		// Reset all ICs connected via SPI
+		let wait_time = std::time::Duration::from_millis(1);
+		gpio.set(27, true); // Make it high, does not reset
+		std::thread::sleep(wait_time);
+		gpio.set(27, false); // Do the reset
+		std::thread::sleep(wait_time);
+		gpio.set(27, true); // Done resetting
+		std::thread::sleep(wait_time);
+
+		let mut mcp23s17 = ic::mcp23s17::MCP23S17::new("/dev/spidev0.0", 0u8, 65535, |value|{gpio.set(17, value)});
 		loop {
-			let led_state = rx_led_state.recv().unwrap();
-			gpio_tx.send(led_state.iter().enumerate().map(|(i,x)|(*x as u16) << i).sum::<u16>()).unwrap();
+			let pins = gpio_rx.try_recv();
+			if pins.is_ok() {
+				let noe = pins.unwrap();
+				mcp23s17.set(noe);
+			}
 		}
 	});
 
 	loop {
-		//gpio_tx.send(255u16).unwrap();
-		//gpio_tx.send(0u16).unwrap();
-		tx_led_power.send(vec![1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32]).unwrap();
-		tx_led_power.send(vec![0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32]).unwrap();
+		gpio_tx.send(255u16).unwrap();
+		gpio_tx.send(0u16).unwrap();
+		//tx_led_power.send(vec![1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32, 1f32]).unwrap();
+		//tx_led_power.send(vec![0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32]).unwrap();
 
 	}
-
-	std::thread::spawn(move||{
-		// Update the pins. Had to use the mainthread, couldn't figure out the borrow checker for gpio.rs
-		// Can we NOT move it to mainthread?
-		let pins = gpio_rx.try_recv();
-		if pins.is_ok() {
-			mcp23s17.set(pins.unwrap());
-		}
-	});
 
 	//let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);
 	let mut ui = ui::UI::new();

@@ -34,7 +34,7 @@ impl LEDController {
 				let position = ((begin.elapsed().as_micros() / hz) % (step_duration as u128 * resolution as u128)) as f32 / (1_000_000f32 / hz as f32);
 				println!("{}", position);
 				for (i,x) in led_power.iter().enumerate() {
-					print!("  {}={}  ", i,x);
+					//print!("  {}={}  ", i,x);
 					let new_value: bool = x >= &position;
 
 					if new_value != led_state[i] {
@@ -42,7 +42,7 @@ impl LEDController {
 						led_state[i] = new_value;
 					}
 				}
-				println!("");
+				//println!("");
 
 				if has_changes {
 					tx_led_state.send(led_state.clone()).unwrap();
