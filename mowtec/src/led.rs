@@ -9,6 +9,7 @@ pub struct LEDController {
 
 impl LEDController {
 	pub fn new(resolution: u8, hz: u32) -> LEDController {
+		assert!(resolution > 1);
 		LEDController {
 			hz: hz,
 			resolution: resolution,
@@ -20,29 +21,27 @@ impl LEDController {
 		let (tx_led_power, rx_led_power) = std::sync::mpsc::sync_channel::<Vec<f32>>(0); // We receive the PWM with for the LEDs
 		let (tx_led_state, rx_led_state) = std::sync::mpsc::sync_channel::<Vec<bool>>(0); // We send out the LED state, the caller forwards this to GPIO
 
-		let hz = self.hz as u128;
 		let step_duration = self.step_duration;
 		let resolution = self.resolution;
 
 		std::thread::spawn(move|| {
-			let begin = std::time::Instant::now();
+			//let begin = std::time::Instant::now();
 			let mut led_power: Vec<f32> = Vec::new();
 			let mut led_state: Vec<bool> = Vec::new();
+			let mut position: u8 = 0;
 
 			loop {
+				position = (position + 1) % resolution;
+
 				let mut has_changes = false;
-				let position = ((begin.elapsed().as_micros() / hz) % (step_duration as u128 * resolution as u128)) as f32 / (1_000_000f32 / hz as f32);
-				println!("{}", position);
 				for (i,x) in led_power.iter().enumerate() {
-					//print!("  {}={}  ", i,x);
-					let new_value: bool = x >= &position;
+					let new_value: bool = (x * (resolution as f32 + 0.25f32)).round() > position as f32;
 
 					if new_value != led_state[i] {
 						has_changes = true;
 						led_state[i] = new_value;
 					}
 				}
-				//println!("");
 
 				if has_changes {
 					tx_led_state.send(led_state.clone()).unwrap();
@@ -53,9 +52,11 @@ impl LEDController {
 					match result {
 						Ok(v) => {
 							led_power = v;
-							led_state = Vec::with_capacity(led_power.len());
-							for i in 0..led_power.len() {
-								led_state.push(false);
+							if led_state.len() != led_power.len() {
+								led_state = Vec::with_capacity(led_power.len());
+								for _ in 0..led_power.len() {
+									led_state.push(false);
+								}
 							}
 						},
 						Err(e) => match e {
