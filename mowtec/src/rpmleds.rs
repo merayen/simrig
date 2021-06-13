@@ -1,41 +1,49 @@
 /** Lights up LEDs according to RPM and state (like when gear is in N, two blue LEDs) **/
 use crate::led;
 
-pub struct RPMLEDs<'a> {
-	led_controller: &'a mut led::LEDController,
+pub struct RPMLEDs {
+	start_rpm: u16,
+	stop_rpm: u16,
+	led_count: u8,
 }
 
-fn get_time() -> u128 {
-	return std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-}
+impl RPMLEDs {
+	 /// start_rpm is when the first green LED on the left side is lit 100%
+	 /// * `max_rpm` is when the meter maxes out (rightmost side)
+	 /// * `led_count` yeah, guess what this is!
+	 /// * `center_width` the width of the 100% lit LEDs
+	 /// 
+	pub fn new(start_rpm: u16, stop_rpm: u16, led_count: u8) -> RPMLEDs {
+		assert!(start_rpm <= stop_rpm);
 
-impl<'a> RPMLEDs<'a> {
-	pub fn new(led_controller: &'a mut led::LEDController) -> RPMLEDs<'a> {
 		return RPMLEDs {
-			led_controller: led_controller,
+			start_rpm: start_rpm,
+			stop_rpm: stop_rpm,
+			led_count: led_count,
 		}
 	}
 
-	pub fn honkey_donk_it(&mut self) {
-		let mut a = 0;
-		let mut next = get_time();
+	pub fn update(&self, mut rpm: u16) -> Vec<f32> {
+		let mut result = Vec::new();
 
-		loop {
-			let time = get_time();
-			if next < time {
-				next = time + 100;
-				a = (a + 1) % led::LED_MAX_POWER;
-			}
-
-			for i in 0..led::LED_COUNT {
-				self.led_controller.set(i, a + i as u8);
-			}
-
-			unsafe {
-				libc::usleep(2000);
-			}
-
-			self.led_controller.update(|led_index, value|{}); // TODO make lambda enable/disable LEDs
+		if rpm > self.stop_rpm {
+			rpm = self.stop_rpm;
 		}
+
+		let range = self.stop_rpm - self.start_rpm;
+		let width = 0.01f32;
+		let smoothness = 2f32;
+
+		for i in 0..self.led_count {
+			let v = (rpm as i32 - self.start_rpm as i32) as f32 / (self.stop_rpm - self.start_rpm) as f32;
+			let divider = (i as f32 / self.led_count as f32 - v as f32).abs().powf(smoothness) / width;
+			if divider >= 1f32 {
+				result.push(1f32 / divider);
+			} else {
+				result.push(1f32);
+			}
+		}
+
+		return result;
 	}
 }

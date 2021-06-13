@@ -1,7 +1,7 @@
 mod util;
 mod led;
 mod ui;
-//mod rpmleds;
+mod rpmleds;
 mod pages;
 mod fonts;
 mod sources;
@@ -38,7 +38,7 @@ fn main() {
 		let gpio = ic::gpio::GPIO::new(input_pins, output_pins); // TODO this is the problematic one
 
 		// Reset all ICs connected via SPI
-		let wait_time = std::time::Duration::from_millis(1);
+		let wait_time = std::time::Duration::from_millis(100);
 		gpio.set(27, true); // Make it high, does not reset
 		std::thread::sleep(wait_time);
 		gpio.set(27, false); // Do the reset
@@ -56,7 +56,7 @@ fn main() {
 		}
 	});
 
-	//let mut rpmleds = rpmleds::RPMLEDs::new(&mut ctrl);
+	let mut rpmleds = rpmleds::RPMLEDs::new(6000, 8000, 11);
 	let ui = ui::UI::new();
 	pages::logo::Logo::new();
 	let mut main = pages::main::Main::new();
@@ -64,7 +64,7 @@ fn main() {
 	let mut telemetry_source = sources::pc2::ProjectCars2::new();
 	let telemetry_channel = shitty_hack(&mut telemetry_source);
 
-	let mut i = 0;
+	let mut rpm = 0u16;
 	loop {
 		let telemetry = telemetry_channel.try_recv();
 		match telemetry {
@@ -90,10 +90,18 @@ fn main() {
 
 		ui.draw(&mut main);
 
-		i += 1;
-		i %= 50;
-		let l = i as f32 / 50f32;
-		tx_led_power.send(vec![l]).unwrap();
+		rpm += 100;
+		rpm %= 9000;
+
+		let led_brightnesses: Vec<f32> = rpmleds.update(rpm);
+
+		//print!("{}: ", rpm);
+		//for x in led_brightnesses.clone() {
+		//	print!("{:.2} ", x);
+		//}
+		//println!("");
+
+		tx_led_power.send(led_brightnesses).unwrap();
 
 		unsafe { // thread sleep instead?
 			libc::usleep(1000000 / 30);
