@@ -1,5 +1,4 @@
 /** Lights up LEDs according to RPM and state (like when gear is in N, two blue LEDs) **/
-use crate::led;
 
 pub struct RPMLEDs {
 	start_rpm: u16,
@@ -30,15 +29,14 @@ impl RPMLEDs {
 			rpm = self.stop_rpm;
 		}
 
-		let range = self.stop_rpm - self.start_rpm;
-		let width = 0.01f32;
+		let width = 0.005f32;
 		let smoothness = 2f32;
 
 		for i in 0..self.led_count {
 			let v = (rpm as i32 - self.start_rpm as i32) as f32 / (self.stop_rpm - self.start_rpm) as f32;
 			let divider = (i as f32 / self.led_count as f32 - v as f32).abs().powf(smoothness) / width;
 			if divider >= 1f32 {
-				result.push(1f32 / divider);
+				result.push((1f32 / divider).powf(2f32)); // ^2 is just magic. Works better (maybe due to how the eye sees light)
 			} else {
 				result.push(1f32);
 			}

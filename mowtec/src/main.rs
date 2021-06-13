@@ -22,7 +22,7 @@ fn main() {
 
 	let (gpio_tx, gpio_rx) = std::sync::mpsc::sync_channel::<u16>(0); // Use gpio_tx to change GPIO pins on the MCP23S17
 
-	let led = led::LEDController::new(5, 50);
+	let led = led::LEDController::new(20, 100);
 	let (tx_led_power, rx_led_state) = led.start();
 
 	// LEDController to gpio-ports
@@ -56,7 +56,7 @@ fn main() {
 		}
 	});
 
-	let mut rpmleds = rpmleds::RPMLEDs::new(6000, 8000, 11);
+	let rpmleds = rpmleds::RPMLEDs::new(6000, 8000, 11);
 	let ui = ui::UI::new();
 	pages::logo::Logo::new();
 	let mut main = pages::main::Main::new();
@@ -90,8 +90,9 @@ fn main() {
 
 		ui.draw(&mut main);
 
-		rpm += 100;
-		rpm %= 9000;
+		if rpm < 5000 {rpm=5000;}
+		rpm += 10;
+		rpm %= 7500;
 
 		let led_brightnesses: Vec<f32> = rpmleds.update(rpm);
 
@@ -104,7 +105,7 @@ fn main() {
 		tx_led_power.send(led_brightnesses).unwrap();
 
 		unsafe { // thread sleep instead?
-			libc::usleep(1000000 / 30);
+			libc::usleep(1000000 / 60);
 		}
 	}
 }

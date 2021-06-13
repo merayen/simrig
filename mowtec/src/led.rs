@@ -2,7 +2,6 @@
 use std::sync::mpsc::{SyncSender, Receiver};
 
 pub struct LEDController {
-	hz: u32,
 	resolution: u8,
 	step_duration: u64, // Microseconds
 }
@@ -11,7 +10,6 @@ impl LEDController {
 	pub fn new(resolution: u8, hz: u32) -> LEDController {
 		assert!(resolution > 1);
 		LEDController {
-			hz: hz,
 			resolution: resolution,
 			step_duration: 1000_000u64 / (hz as u64) / (resolution as u64),
 		}
