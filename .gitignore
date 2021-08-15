@@ -1,2 +1,5 @@
 *.swp
 /mowtec/target
+/InstrumentController.X/dist/
+/InstrumentController.X/build
+/InstrumentController.X/nbproject
