@@ -107,10 +107,12 @@ void main(void) {
 		//time_update();
 		led_step++;
 		if (led_step > 1000) {
-			//if (LATA == 0 && LATC == 0) LATA = 1; else LATA *= 2;
-			//if (LATA == 0 && LATC == 0) LATC = 1; else LATC *= 2;
-			LATA = 0;
-			LATC = 0;
+			LATA ^= 255;
+			LATC ^= 255;
+			if (LATA == 0 && LATC == 0) LATA = 1; else LATA *= 2;
+			if (LATA == 0 && LATC == 0) LATC = 1; else LATC *= 2;
+			LATA ^= 255;
+			LATC ^= 255;
 			LATD ^= 1;
 			led_step = 0;
 		}
