@@ -31,6 +31,10 @@ unsigned long time_ms = 0;
 unsigned char current_TMR1H = 0;
 unsigned char current_TMR1L = 0;
 
+// These two parameters should be retrieved from SPI, engine specs
+short led_start = 6500; // Where LEDs start to light on left side (green LEDs)
+short led_stop = 7800; // Max RPM where LEDs on the right side won't go any further
+
 struct State {
 	unsigned int rpm; // 0 = 0 RPM, 255 = 10'000 rpm
 	unsigned char led_rpm; // 0 = off, 1 = first green LED dimly lit, 255 = right-most LED lit
@@ -58,6 +62,60 @@ void __interrupt () my_little_interrupting_pony() {
 //	}
 //}
 
+void update_leds() {
+	// Position can be between 0 and 11 (not inclusive), the center of the RPM LED
+	short position = ((short)state.rpm - (short)led_start) / ((short)(led_stop - led_start) / (short)11); // Position of the center LED
+	if (position > 10) position = 10;
+
+	unsigned char lata = 0;
+	unsigned char latc = 0;
+	unsigned char latd = 0;
+
+	if (position == 0)
+		lata = 0b1;
+	
+	if (position == 1)
+		lata = 0b11;
+	
+	if (position == 2)
+		lata = 0b111;
+	
+	if (position == 3)
+		lata = 0b1111;
+	
+	if (position == 4)
+		lata = 0b11111;
+	
+	if (position == 5)
+		lata = 0b111110;
+	
+	if (position == 6)
+		lata = 0b1111100;
+	
+	if (position == 7)
+		lata = 0b11111000;
+	
+	if (position == 8) {
+		lata = 0b11110000;
+		latc = 0b1;
+	}
+
+	if (position == 9) {
+		lata = 0b11100000;
+		latc = 0b11;
+	}
+
+	if (position == 10) {
+		lata = 0b11000000;
+		latc = 0b111;
+	}
+
+	// The driver circuit inverts, so 0 means "LED on"
+	LATA = lata ^ 255;
+	LATC = latc ^ 255;
+	//LATD &= (255 | latd);
+}
+
 void main(void) {
 	// TIMER1 configuration
 	T1CONbits.TMR1CS = 0;
@@ -81,11 +139,6 @@ void main(void) {
 	//PIR1bits.TMR2IF = 0;
 	//PIE1bits.TMR2IE = 1;
 
-	TRISA = 0;
-	TRISC = 0;
-	TRISD &= 255 - 1;
-	TRISE &= 255 - 1;
-
 	// 32 MHz action
 	OSCCONbits.SCS = 0;
 	OSCCONbits.IRCF0 = 1;
@@ -96,34 +149,25 @@ void main(void) {
 	// Wait for 32Mhz action
 	while (OSCSTATbits.HFIOFR == 0 || OSCSTATbits.HFIOFL == 0 || OSCSTATbits.HFIOFR == 0 || OSCSTATbits.PLLR == 1);
 
+	TRISA = 0;
+	TRISC = 0;
+	TRISD &= 255 - 1;
+	TRISE &= 255 - 1;
+
 	int down_step = 0;
 	int led_step = 0;
-
-	LATA = 0;
-	LATC = 0;
 
 	// Main action
 	while (1) {
 		//time_update();
-		led_step++;
-		if (led_step > 1000) {
-			LATA ^= 255;
-			LATC ^= 255;
-			if (LATA == 0 && LATC == 0) LATA = 1; else LATA *= 2;
-			if (LATA == 0 && LATC == 0) LATC = 1; else LATC *= 2;
-			LATA ^= 255;
-			LATC ^= 255;
-			LATD ^= 1;
-			led_step = 0;
-		}
 
 		down_step++;
 		if (down_step > 15) {
 			state.rpm++;
 			down_step = 0;
 		}
-		if (state.rpm > 10000)
-			state.rpm = 500;
+		if (state.rpm > 7800 || state.rpm < 5000)
+			state.rpm = 6000;
 
 		if (state.rpm >= 500) {
 			unsigned int new = 65535 - (unsigned int)((unsigned long)7386363 / (unsigned long)state.rpm);
@@ -134,6 +178,13 @@ void main(void) {
 			//PIR1bits.TMR1IF = 0;
 		} else {
 			T1CONbits.TMR1ON = 0;
+		}
+
+		// RPM LEDs
+		led_step++;
+		if (led_step > 10) {
+			update_leds();
+			led_step = 0;
 		}
 	}
 }
