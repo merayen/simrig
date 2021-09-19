@@ -11,7 +11,7 @@
 #pragma config CP = OFF         // Flash Program Memory Code Protection (Program memory code protection is disabled)
 #pragma config CPD = OFF        // Data Memory Code Protection (Data memory code protection is disabled)
 #pragma config BOREN = ON       // Brown-out Reset Enable (Brown-out Reset enabled)
-#pragma config CLKOUTEN = ON   // Clock Out Enable (CLKOUT function is disabled. I/O or oscillator function on the CLKOUT pin)
+#pragma config CLKOUTEN = OFF   // Clock Out Enable (CLKOUT function is disabled. I/O or oscillator function on the CLKOUT pin)
 #pragma config IESO = OFF        // Internal/External Switchover (Internal/External Switchover mode is enabled)
 #pragma config FCMEN = OFF       // Fail-Safe Clock Monitor Enable (Fail-Safe Clock Monitor is enabled)
 
@@ -39,7 +39,7 @@ struct State {
 void __interrupt () my_little_interrupting_pony() {
 	if (PIR1bits.TMR1IF) {
 		//ticks++;
-		LATAbits.LATA0 ^= 1;
+		LATEbits.LATE0 ^= 1;
 		TMR1Lbits.TMR1L = current_TMR1L;
 		TMR1Hbits.TMR1H = current_TMR1H;
 		PIR1bits.TMR1IF = 0;
@@ -81,8 +81,10 @@ void main(void) {
 	//PIR1bits.TMR2IF = 0;
 	//PIE1bits.TMR2IE = 1;
 
-	TRISA &= 255 - 255;
-	TRISB &= 255 - 1;
+	TRISA = 0;
+	TRISC = 0;
+	TRISD &= 255 - 1;
+	TRISE &= 255 - 1;
 
 	// 32 MHz action
 	OSCCONbits.SCS = 0;
@@ -94,22 +96,40 @@ void main(void) {
 	// Wait for 32Mhz action
 	while (OSCSTATbits.HFIOFR == 0 || OSCSTATbits.HFIOFL == 0 || OSCSTATbits.HFIOFR == 0 || OSCSTATbits.PLLR == 1);
 
+	int down_step = 0;
+	int led_step = 0;
+
+	LATA = 0;
+	LATC = 0;
+
 	// Main action
 	while (1) {
 		//time_update();
-		LATBbits.LATB0 ^= 1;
+		led_step++;
+		if (led_step > 1000) {
+			//if (LATA == 0 && LATC == 0) LATA = 1; else LATA *= 2;
+			//if (LATA == 0 && LATC == 0) LATC = 1; else LATC *= 2;
+			LATA = 0;
+			LATC = 0;
+			LATD ^= 1;
+			led_step = 0;
+		}
 
-		state.rpm++;
+		down_step++;
+		if (down_step > 15) {
+			state.rpm++;
+			down_step = 0;
+		}
 		if (state.rpm > 10000)
-			state.rpm = 0;
+			state.rpm = 500;
 
-		if (state.rpm >= 300) {
-			T1CONbits.TMR1ON = 1;
-			PIR1bits.TMR1IF = 0;
-			unsigned int new = 65535 - (unsigned int)((unsigned long)30302000 / (unsigned long)state.rpm);
-			//30302000; // 15151000*2
+		if (state.rpm >= 500) {
+			unsigned int new = 65535 - (unsigned int)((unsigned long)7386363 / (unsigned long)state.rpm);
+			7386363.074999999; // 7575757 / (8/7.8)
 			current_TMR1L = (unsigned char)(new % 256);
 			current_TMR1H = (unsigned char)(new >> 8);
+			T1CONbits.TMR1ON = 1;
+			//PIR1bits.TMR1IF = 0;
 		} else {
 			T1CONbits.TMR1ON = 0;
 		}
