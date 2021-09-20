@@ -25,8 +25,10 @@
 #pragma config LVP = ON        // Low-Voltage Programming Enable (Low-voltage programming enabled)
 #include <xc.h>
 
-unsigned long ticks = 0;
-unsigned long time_ms = 0;
+#define LED_COUNT 18
+#define LED_SOCKETS 11 // Physical LEDs in total (they are RGB)
+#define LED_WIDTH 5
+#define LED_PWM_RESOLUTION 32
 
 unsigned char current_TMR1H = 0;
 unsigned char current_TMR1L = 0;
@@ -42,78 +44,85 @@ struct State {
 
 void __interrupt () my_little_interrupting_pony() {
 	if (PIR1bits.TMR1IF) {
-		//ticks++;
 		LATEbits.LATE0 ^= 1;
 		TMR1Lbits.TMR1L = current_TMR1L;
 		TMR1Hbits.TMR1H = current_TMR1H;
 		PIR1bits.TMR1IF = 0;
 	}
-	//if (PIR1bits.TMR2IF) {
-	//	PIR1bits.TMR2IF = 0;
-	//}
 }
 
-//void time_update(void) {
-//	unsigned long something = ticks;
-//	ticks = 0; // May loose a tick if interrupted around this part, but whatever
-//	if (something > 0) {
-//		time_ms += something * 8;
-//		state.rpm += 1;
-//	}
-//}
+unsigned char led_power[LED_COUNT];
+unsigned char led_power_position = 0;
 
 void update_leds() {
 	// Position can be between 0 and 11 (not inclusive), the center of the RPM LED
-	short position = ((short)state.rpm - (short)led_start) / ((short)(led_stop - led_start) / (short)11); // Position of the center LED
-	if (position > 10) position = 10;
+	short position = ((short)state.rpm - (short)led_start) / ((short)(led_stop - led_start) / (short)LED_SOCKETS); // Position of the center LED
 
-	unsigned char lata = 0;
-	unsigned char latc = 0;
-	unsigned char latd = 0;
+	if (position > LED_SOCKETS - 1) position = LED_SOCKETS - 1;
 
-	if (position == 0)
-		lata = 0b1;
-	
-	if (position == 1)
-		lata = 0b11;
-	
-	if (position == 2)
-		lata = 0b111;
-	
-	if (position == 3)
-		lata = 0b1111;
-	
-	if (position == 4)
-		lata = 0b11111;
-	
-	if (position == 5)
-		lata = 0b111110;
-	
-	if (position == 6)
-		lata = 0b1111100;
-	
-	if (position == 7)
-		lata = 0b11111000;
-	
-	if (position == 8) {
-		lata = 0b11110000;
-		latc = 0b1;
+	// If totally outside, nothing to do
+	if (position < -LED_WIDTH) return;
+
+	unsigned char leds[LED_SOCKETS];
+
+	for (char i = 0; i < LED_SOCKETS; i++)
+		leds[i] = i*14; // 256/18
+
+	// Middle LED
+	//for (char i = -LED_WIDTH; i < LED_SOCKETS; i++) {
+	//	int offset = abs(i - (char)position);
+	//	if (i >= 0 && i < LED_SOCKETS) {
+	//		if (offset == 0) leds[i] = 255; else leds[i] = 0;
+	//	}
+	//}
+
+	for (char i = 0; i < LED_SOCKETS; i++) {
+		if (position >= i && position - LED_WIDTH < i)
+			leds[i] = 255;
+		else
+			leds[i] = 0;
 	}
 
-	if (position == 9) {
-		lata = 0b11100000;
-		latc = 0b11;
-	}
+	// Reset power of the LEDs
+	for (char i = 0; i < LED_SOCKETS; i++)
+		led_power[i] = leds[i];
 
-	if (position == 10) {
-		lata = 0b11000000;
-		latc = 0b111;
-	}
+	// Apply correct values on the different LEDs
+	// TODO
+}
+
+void update_led_pwm() { // Meh, don't think we have enough CPU power for this
+	unsigned int lat = 0;
+
+	led_power_position += LED_PWM_RESOLUTION;
+
+	for (int i = 0; i < LED_COUNT; i++)
+		if (led_power[i] > led_power_position)
+			lat += 1 << i;
 
 	// The driver circuit inverts, so 0 means "LED on"
-	LATA = lata ^ 255;
-	LATC = latc ^ 255;
-	//LATD &= (255 | latd);
+	lat ^= 4294967295; // 2**32-1
+
+	LATA = (unsigned char)lat;
+	LATC = *(((unsigned char*)&lat) + 1);
+	//LATDbits.LATD0 = lat & 65536 == 1;
+	//LATDbits.LATD1 = lat & 131072 == 1;
+}
+
+void update_led_direct() {  // Same as update_led_pwm, only no PWM
+	unsigned int lat = 0;
+
+	for (int i = 0; i < LED_COUNT; i++)
+		if (led_power[i] > 0)
+			lat += 1 << i;
+
+	// The driver circuit inverts, so 0 means "LED on"
+	lat ^= 4294967295; // 2**32-1
+
+	LATA = (unsigned char)lat;
+	LATC = *(((unsigned char*)&lat) + 1);
+	//LATDbits.LATD0 = lat & 65536 == 1;
+	//LATDbits.LATD1 = lat & 131072 == 1;
 }
 
 void main(void) {
@@ -159,8 +168,6 @@ void main(void) {
 
 	// Main action
 	while (1) {
-		//time_update();
-
 		down_step++;
 		if (down_step > 15) {
 			state.rpm++;
@@ -182,8 +189,9 @@ void main(void) {
 
 		// RPM LEDs
 		led_step++;
-		if (led_step > 10) {
+		if (led_step > 100) {
 			update_leds();
+			update_led_direct();
 			led_step = 0;
 		}
 	}

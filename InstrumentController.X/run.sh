@@ -1,1 +1,1 @@
-python3 gen.py > main.c
+#python3 gen.py > main.c
