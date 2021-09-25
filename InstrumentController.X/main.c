@@ -28,7 +28,7 @@
 #define LED_COUNT 18
 #define LED_SOCKETS 11 // Physical LEDs in total (they are RGB)
 #define LED_WIDTH 5
-#define LED_PWM_RESOLUTION 16
+#define LED_PWM_RESOLUTION 4
 
 unsigned char current_TMR1H = 0;
 unsigned char current_TMR1L = 0;
@@ -83,25 +83,32 @@ void update_leds() {
 			leds[i] = 0;
 	}
 
-	// Reset power of the LEDs
-	//for (char i = 0; i < LED_SOCKETS; i++)
-	//	led_power[i] = leds[i];
+	// Apply PWM values on the different LEDs (0 to 255)
 
-	// Apply correct values on the different LEDs
-	for (char i = 0; i < LED_SOCKETS; i++) {
-		if (i < 4) { // Green LEDs
-			led_power[i] = leds[i];
-		} else if (i < 6) { // Yellow LED 0
-			led_power[i] = leds[i];
-			led_power[i+6] = leds[i];
-		} else if (i < 8) {
-			led_power[i] = leds[i] / 2;
-			led_power[i+6] = leds[i];
-		} else if (i < 10) {
-			led_power[i] = leds[i] / 4;
-			led_power[i+6] = leds[i];
-		}
-	}
+	// Green LEDs
+	// pyx 4 f'led_power[{i}] = leds[{i}];\n'
+	led_power[0] = leds[0];
+	led_power[1] = leds[1];
+	led_power[2] = leds[2];
+	led_power[3] = leds[3];
+
+	// Red LEDs (turns yellow)
+	// pyx 6 f'led_power[{i+4}] = leds[{i+4}] >> {int(1+i/1.5)};\n'
+	led_power[4] = leds[4] >> 1;
+	led_power[5] = leds[5] >> 1;
+	led_power[6] = leds[6] >> 2;
+	led_power[7] = leds[7] >> 3;
+	led_power[8] = leds[8] >> 3;
+	led_power[9] = leds[9] >> 4;
+
+	// Red LEDs
+	// pyx 6 f'led_power[{i+10}] = leds[{i+4}];\n'
+	led_power[10] = leds[4];
+	led_power[11] = leds[5];
+	led_power[12] = leds[6];
+	led_power[13] = leds[7];
+	led_power[14] = leds[8];
+	led_power[15] = leds[9];
 }
 
 void update_led_pwm() { // Meh, don't think we have enough CPU power for this
@@ -160,35 +167,38 @@ void main(void) {
 	TRISD &= 255 - 1;
 	TRISE &= 255 - 1;
 
-	int down_step = 0;
-	int led_step = 0;
+	int tick_update_rpm = 0;
+	int tick_update_tachometer = 0;
+	int tick_led_update = 0;
 
 	// Main action
 	while (1) {
-		down_step++;
-		if (down_step > 15) {
+		tick_update_rpm++;
+		if (tick_update_rpm > 100) {
+			tick_update_rpm = 0;
 			state.rpm++;
-			down_step = 0;
 		}
 		if (state.rpm > 7800 || state.rpm < 5000)
 			state.rpm = 6000;
 
-		if (state.rpm >= 500) {
+		tick_update_tachometer++;
+		if (tick_update_tachometer > 100 && state.rpm >= 500) {
+			tick_update_tachometer = 0;
 			unsigned int new = 65535 - (unsigned int)((unsigned long)7386363 / (unsigned long)state.rpm);
 			7386363.074999999; // 7575757 / (8/7.8)
 			current_TMR1L = (unsigned char)(new % 256);
 			current_TMR1H = (unsigned char)(new >> 8);
 			T1CONbits.TMR1ON = 1;
-			//PIR1bits.TMR1IF = 0;
+			PIR1bits.TMR1IF = 0;
 		} else {
 			T1CONbits.TMR1ON = 0;
 		}
 
 		// RPM LEDs
-		led_step++;
-		if (led_step > 100) {
+		tick_led_update++;
+		if (tick_led_update > 100) {
+			tick_led_update = 0;
 			update_leds();
-			led_step = 0;
 		}
 		update_led_pwm();
 	}
