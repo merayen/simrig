@@ -28,7 +28,7 @@
 #define LED_COUNT 18
 #define LED_SOCKETS 11 // Physical LEDs in total (they are RGB)
 #define LED_WIDTH 5
-#define LED_PWM_RESOLUTION 32
+#define LED_PWM_RESOLUTION 16
 
 unsigned char current_TMR1H = 0;
 unsigned char current_TMR1L = 0;
@@ -84,11 +84,24 @@ void update_leds() {
 	}
 
 	// Reset power of the LEDs
-	for (char i = 0; i < LED_SOCKETS; i++)
-		led_power[i] = leds[i];
+	//for (char i = 0; i < LED_SOCKETS; i++)
+	//	led_power[i] = leds[i];
 
 	// Apply correct values on the different LEDs
-	// TODO
+	for (char i = 0; i < LED_SOCKETS; i++) {
+		if (i < 4) { // Green LEDs
+			led_power[i] = leds[i];
+		} else if (i < 6) { // Yellow LED 0
+			led_power[i] = leds[i];
+			led_power[i+6] = leds[i];
+		} else if (i < 8) {
+			led_power[i] = leds[i] / 2;
+			led_power[i+6] = leds[i];
+		} else if (i < 10) {
+			led_power[i] = leds[i] / 4;
+			led_power[i+6] = leds[i];
+		}
+	}
 }
 
 void update_led_pwm() { // Meh, don't think we have enough CPU power for this
@@ -98,22 +111,6 @@ void update_led_pwm() { // Meh, don't think we have enough CPU power for this
 
 	for (int i = 0; i < LED_COUNT; i++)
 		if (led_power[i] > led_power_position)
-			lat += 1 << i;
-
-	// The driver circuit inverts, so 0 means "LED on"
-	lat ^= 4294967295; // 2**32-1
-
-	LATA = (unsigned char)lat;
-	LATC = *(((unsigned char*)&lat) + 1);
-	//LATDbits.LATD0 = lat & 65536 == 1;
-	//LATDbits.LATD1 = lat & 131072 == 1;
-}
-
-void update_led_direct() {  // Same as update_led_pwm, only no PWM
-	unsigned int lat = 0;
-
-	for (int i = 0; i < LED_COUNT; i++)
-		if (led_power[i] > 0)
 			lat += 1 << i;
 
 	// The driver circuit inverts, so 0 means "LED on"
@@ -191,8 +188,8 @@ void main(void) {
 		led_step++;
 		if (led_step > 100) {
 			update_leds();
-			update_led_direct();
 			led_step = 0;
 		}
+		update_led_pwm();
 	}
 }
