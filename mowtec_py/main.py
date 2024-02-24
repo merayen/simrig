@@ -59,8 +59,30 @@ kmt_value = pygame.font.SysFont("Arial", font_size(128))
 def draw_speed(kmt):
 	pygame.draw.rect(surface, "grey", (*pos(.2, .15), *pos(.6, .5)), width=size(1))
 	surface.blit(kmt_title, pos(.445, .2))
-	surface.blit(kmt_value.render(str(round(kmt/2)*2), True, "white"), pos(.322, .3))
 
+	p = kmt_value.render(str(round(kmt/2)*2), True, "white")
+	r = pos(.72, .3)
+	surface.blit(p, (r[0] - p.get_size()[0], r[1]))
+
+
+boost_titles = [
+	pygame.font.SysFont("Arial", font_size(21)).render("boost_LH", True, "grey", "black"),
+	pygame.font.SysFont("Arial", font_size(21)).render("boost_RH", True, "grey", "black"),
+]
+bar_digit = pygame.font.SysFont("Arial", font_size(16))
+
+def draw_boost(x, y, n, index):
+	pygame.draw.rect(surface, "grey", (*pos(x, y), *pos(.4, .18)), width=size(1))
+	surface.blit(boost_titles[index], pos(x + .12, y-.02))
+
+	# Boost scale
+	for i in range(4):
+		v = 0.12*(i/1.5) + .1
+		pygame.draw.line(surface, "grey", [*pos(x+v, y+.05)], [*pos(x+v, y+.15)], True)
+		surface.blit(bar_digit.render(str(i / 2), True, "grey", (0,0,0)), pos(x + v - .02, y + .05))
+
+	# Boost bar
+	pygame.draw.rect(surface, "white", (*pos(x + .02, y+.1), *pos(.08 + n/4, .05)), width=size(10))
 
 while running:
 	event = pygame.event.poll()
@@ -72,7 +94,9 @@ while running:
 	pygame.draw.rect(surface, "white", (*pos(0,0), *pos(1, 1)), width=1)
 
 	draw_rpm_bar(1.8, 8)
-	draw_speed(0)
+	draw_speed(210)
+	draw_boost(.02, .8, 1, 0)
+	draw_boost(.58, .8, 1, 1)
 
 	pygame.transform.scale2x(surface, screen)
 	#screen.blit(surface, (0,0), )
