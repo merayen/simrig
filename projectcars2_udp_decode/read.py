@@ -5,7 +5,10 @@ import json
 
 output = []
 
-with open("output.txt", "rb") as f:
+import sys
+assert sys.argv[1].endswith(".txt")
+
+with open(sys.argv[1], "rb") as f:
 	while 1:
 		length = f.read(8)
 		if not length:
@@ -40,7 +43,7 @@ with open("output.txt", "rb") as f:
 		}
 		output.append(decoded)
 
-with open("output.json", "w") as f:
+with open(f"{sys.argv[1].rsplit('.', maxsplit=1)[0]}.json", "w") as f:
 	f.write("[\n")
 	for i,x in enumerate(output):
 		f.write(f"\t{json.dumps(x)}")

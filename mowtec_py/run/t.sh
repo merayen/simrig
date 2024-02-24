@@ -1,0 +1,1 @@
+pytest -vvv $1
