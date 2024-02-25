@@ -34,16 +34,16 @@ def size(x):
 	return round(x*((WIDTH+HEIGHT)/2/2) / lolnumber)
 
 
-rpm_title = pygame.font.SysFont("Arial", font_size(12)).render("rpm", True, (127,100,0), (0,0,0))
+rpm_title = pygame.font.SysFont("Arial", font_size(14)).render("rpm", True, (127,100,0), (0,0,0))
 
 
 def draw_rpm_bar(n, n_max):
 	# RPM lines
-	rpm_digit = pygame.font.SysFont("Arial", font_size(12))
+	rpm_digit = pygame.font.SysFont("Arial", font_size(14))
 	for i in range(n_max):
 		v = 1.1*(i/n_max) + .02
 		pygame.draw.line(surface, "grey", [*pos(v, .05)], [*pos(v, .1)], True)
-		surface.blit(rpm_digit.render(str(i+1), True, (127,100,0), (0,0,0)), pos(v - .005, .05))
+		surface.blit(rpm_digit.render(str(i+1), True, (127,100,0), (0,0,0)), pos(v - .005, .02))
 
 	pygame.draw.rect(surface, "grey", (*pos(.01,.01,), *pos(.98, .1)), width=size(1))
 
@@ -77,12 +77,21 @@ def draw_boost(x, y, n, index):
 
 	# Boost scale
 	for i in range(4):
-		v = 0.12*(i/1.5) + .1
+		if index == 0:
+			v = 0.12*(i/1.5) + .1
+		else:
+			v = 0.12*(-i/1.5) + .3
+
 		pygame.draw.line(surface, "grey", [*pos(x+v, y+.05)], [*pos(x+v, y+.15)], True)
 		surface.blit(bar_digit.render(str(i / 2), True, "grey", (0,0,0)), pos(x + v - .02, y + .05))
 
 	# Boost bar
-	pygame.draw.rect(surface, "white", (*pos(x + .02, y+.1), *pos(.08 + n/4, .05)), width=size(10))
+	if index == 0:
+		p = (*pos(x + .02, y+.1), *pos(.08 + n/4, .05))
+	else:
+		p = (*pos(x + .3 - n/4, y+.1), *pos(.08 + n/4, .05))
+
+	pygame.draw.rect(surface, "white", p, width=size(10))
 
 while running:
 	event = pygame.event.poll()
@@ -95,8 +104,8 @@ while running:
 
 	draw_rpm_bar(1.8, 8)
 	draw_speed(210)
-	draw_boost(.02, .8, 1, 0)
-	draw_boost(.58, .8, 1, 1)
+	draw_boost(.02, .8, 0, 0)
+	draw_boost(.58, .8, 0, 1)
 
 	pygame.transform.scale2x(surface, screen)
 	#screen.blit(surface, (0,0), )
