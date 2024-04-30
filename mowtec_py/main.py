@@ -8,7 +8,7 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 
 WIDTH = 720
-HEIGHT = 512
+HEIGHT = 640
 
 pygame.init()
 pygame.font.init()
@@ -91,7 +91,7 @@ def draw_boost(x, y, n, index):
 	else:
 		p = (*pos(x + .3 - n/4, y+.1), *pos(.08 + n/4, .05))
 
-	pygame.draw.rect(surface, "white", p, width=size(10))
+	pygame.draw.rect(surface, "white", p, width=size(100))
 
 while running:
 	event = pygame.event.poll()
